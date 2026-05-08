@@ -13,12 +13,13 @@ import type { PurchaseEntry, Product, CreateEntryItemInput, AuditLogEntry } from
 import styles from './entradas.module.css'
 
 interface ItemRow extends Omit<CreateEntryItemInput, 'product_id'> {
-  key:         number
-  product_id:  number
-  product_name?: string
-  applies_iva: boolean
-  iva_rate:    number
-  line_total:  number
+  key:                number
+  product_id:         number
+  product_name?:      string
+  applies_iva:        boolean
+  iva_rate:           number
+  line_total:         number
+  line_total_display: string
 }
 
 type EntryWithHistory = PurchaseEntry & { history?: AuditLogEntry[] }
@@ -78,8 +79,33 @@ export default function EntradasPage() {
     })
   }, [])
 
+  function handleLineTotalChange(key: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const input     = e.target
+    const rawValue  = input.value
+    const cursorPos = input.selectionStart ?? 0
+
+    const digitsBeforeCursor = rawValue.slice(0, cursorPos).replace(/[^\d]/g, '').length
+    const digitsOnly         = rawValue.replace(/[^\d]/g, '')
+    const num                = digitsOnly ? parseInt(digitsOnly, 10) : 0
+    const formatted          = num > 0 ? formatCurrency(num) : ''
+
+    setFormTouched(true)
+    setItems(prev => prev.map(i => i.key !== key ? i : { ...i, line_total: num, line_total_display: formatted }))
+
+    requestAnimationFrame(() => {
+      let newPos     = formatted.length
+      let digitCount = 0
+      for (let i = 0; i < formatted.length; i++) {
+        if (/\d/.test(formatted[i])) digitCount++
+        if (digitCount === digitsBeforeCursor) { newPos = i + 1; break }
+      }
+      if (digitsBeforeCursor === 0) newPos = 0
+      input.setSelectionRange(newPos, newPos)
+    })
+  }
+
   function addItem() {
-    setItems(prev => [...prev, { key: nextKey, product_id: 0, quantity: 0, unit: '', applies_iva: true, iva_rate: ivaDefault, line_total: 0 }])
+    setItems(prev => [...prev, { key: nextKey, product_id: 0, quantity: 0, unit: '', applies_iva: true, iva_rate: ivaDefault, line_total: 0, line_total_display: '' }])
     setNextKey(k => k + 1)
     setFormTouched(true)
   }
@@ -123,14 +149,15 @@ export default function EntradasPage() {
     setFormTouched(false)
     if (entry.items) {
       setItems(entry.items.map((item, idx) => ({
-        key:          idx,
-        product_id:   item.product_id,
-        product_name: item.product_name,
-        quantity:     item.quantity,
-        unit:         item.unit,
-        applies_iva:  item.applies_iva,
-        iva_rate:     item.iva_rate,
-        line_total:   item.line_total,
+        key:                idx,
+        product_id:         item.product_id,
+        product_name:       item.product_name,
+        quantity:           item.quantity,
+        unit:               item.unit,
+        applies_iva:        item.applies_iva,
+        iva_rate:           item.iva_rate,
+        line_total:         item.line_total,
+        line_total_display: item.line_total > 0 ? formatCurrency(item.line_total) : '',
       })))
       setNextKey(entry.items.length)
     } else {
@@ -346,9 +373,9 @@ export default function EntradasPage() {
                         : '—'}
                     </div>
 
-                    <input type="number" min="0" step="any" placeholder="0"
-                      value={item.line_total || ''}
-                      onChange={e => updateItem(item.key, 'line_total', e.target.value)}
+                    <input type="text" inputMode="numeric" placeholder="0"
+                      value={item.line_total_display}
+                      onChange={e => handleLineTotalChange(item.key, e)}
                       style={{textAlign:'right'}} />
 
                     <button type="button" className={styles.removeItem}

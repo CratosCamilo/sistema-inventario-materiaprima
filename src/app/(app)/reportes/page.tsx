@@ -6,7 +6,8 @@ import { StockStatusBadge } from '@/components/ui/Badge'
 import { Table } from '@/components/ui/Table'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi, entriesApi, exitsApi, adjustmentsApi, movementsApi, auditApi } from '@/lib/api/client'
-import { formatDate, formatNumber, getStockStatus, DESTINATION_LABELS, MOVEMENT_TYPE_LABELS } from '@/utils/formatters'
+import { formatDate, formatNumber, formatCurrency, getStockStatus, DESTINATION_LABELS, MOVEMENT_TYPE_LABELS } from '@/utils/formatters'
+import { exportCsv } from '@/utils/exportCsv'
 import type { Product, PurchaseEntry, Exit, StockAdjustment, InventoryMovement, AuditLogEntry } from '@/types'
 import styles from './reportes.module.css'
 
@@ -27,28 +28,145 @@ export default function ReportesPage() {
   const [reportType, setReportType] = useState<ReportType>('stock')
   const [dateFrom, setDateFrom]     = useState('')
   const [dateTo, setDateTo]         = useState('')
+  const [filterCategory, setFilterCategory]         = useState('')
+  const [filterText, setFilterText]                 = useState('')
+  const [filterDestination, setFilterDestination]   = useState('')
+  const [filterMovementType, setFilterMovementType] = useState('')
   const [data, setData]             = useState<unknown[]>([])
   const [activeType, setActiveType] = useState<ReportType | null>(null)
   const [loading, setLoading]       = useState(false)
+
+  function selectReportType(type: ReportType) {
+    setReportType(type)
+    setFilterCategory('')
+    setFilterText('')
+    setFilterDestination('')
+    setFilterMovementType('')
+  }
 
   async function generateReport() {
     const filters = { date_from: dateFrom || undefined, date_to: dateTo || undefined }
     setLoading(true)
     let result: unknown[] = []
+
     if (reportType === 'stock' || reportType === 'low_stock') {
       const all = await productsApi.list(warehouse.id)
       result = reportType === 'low_stock'
         ? all.filter(p => p.active && p.stock_current <= p.stock_minimum)
         : all.filter(p => p.active)
-    } else if (reportType === 'entries')     { result = await entriesApi.list(warehouse.id, filters) }
-    else if (reportType === 'exits')         { result = await exitsApi.list(warehouse.id, filters) }
-    else if (reportType === 'adjustments')   { result = await adjustmentsApi.list(warehouse.id, filters) }
-    else if (reportType === 'movements') { result = await movementsApi.list(warehouse.id, { date_from: filters.date_from, date_to: filters.date_to }) }
-    else if (reportType === 'audit')     { result = await auditApi.listEntryEdits(filters) }
+      if (filterCategory) result = result.filter(p => (p as Product).category === filterCategory)
+
+    } else if (reportType === 'entries') {
+      result = await entriesApi.list(warehouse.id, filters)
+      if (filterText) {
+        const q = filterText.toLowerCase()
+        result = result.filter(e => {
+          const r = e as PurchaseEntry
+          return (r.invoice_number ?? '').toLowerCase().includes(q) ||
+                 (r.supplier_name  ?? '').toLowerCase().includes(q)
+        })
+      }
+
+    } else if (reportType === 'exits') {
+      result = await exitsApi.list(warehouse.id, filters)
+      if (filterDestination) result = result.filter(e => (e as Exit).destination === filterDestination)
+
+    } else if (reportType === 'adjustments') {
+      result = await adjustmentsApi.list(warehouse.id, filters)
+      if (filterText) {
+        const q = filterText.toLowerCase()
+        result = result.filter(a => (a as StockAdjustment).product_name?.toLowerCase().includes(q))
+      }
+
+    } else if (reportType === 'movements') {
+      result = await movementsApi.list(warehouse.id, { date_from: filters.date_from, date_to: filters.date_to })
+      if (filterMovementType) result = result.filter(m => (m as InventoryMovement).type === filterMovementType)
+
+    } else if (reportType === 'audit') {
+      result = await auditApi.listEntryEdits(filters)
+      if (filterText) {
+        const q = filterText.toLowerCase()
+        result = result.filter(a => {
+          const r = a as AuditLogEntry
+          return (r.invoice_number ?? '').toLowerCase().includes(q) ||
+                 (r.supplier_name  ?? '').toLowerCase().includes(q) ||
+                 r.user_name.toLowerCase().includes(q)
+        })
+      }
+    }
+
     setData(result); setActiveType(reportType); setLoading(false)
   }
 
-  const needsDates = ['entries', 'exits', 'adjustments', 'movements', 'audit'].includes(reportType)
+  function handleExport() {
+    if (!activeType || data.length === 0) return
+    const today = new Date().toISOString().slice(0, 10)
+
+    switch (activeType) {
+      case 'stock':
+      case 'low_stock': {
+        const rows = (data as Product[]).map(p => [
+          p.name,
+          p.category === 'Produccion' ? 'Producción' : 'Empaques',
+          p.stock_current,
+          p.visual_unit,
+          p.stock_minimum,
+          getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
+            : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
+        ])
+        exportCsv(`stock_${today}.csv`, ['Producto', 'Categoría', 'Stock actual', 'Unidad', 'Mínimo', 'Estado'], rows)
+        break
+      }
+      case 'entries': {
+        const rows = (data as PurchaseEntry[]).map(e => [
+          formatDate(e.date), e.invoice_number ?? '', e.supplier_name ?? '',
+          e.responsible ?? '', e.total > 0 ? e.total : '',
+        ])
+        exportCsv(`entradas_${today}.csv`, ['Fecha', 'Folio', 'Proveedor', 'Responsable', 'Total'], rows)
+        break
+      }
+      case 'exits': {
+        const rows = (data as Exit[]).map(e => [
+          formatDate(e.date), DESTINATION_LABELS[e.destination] ?? e.destination,
+          e.responsible ?? '', e.notes ?? '',
+        ])
+        exportCsv(`salidas_${today}.csv`, ['Fecha', 'Destino', 'Responsable', 'Observaciones'], rows)
+        break
+      }
+      case 'adjustments': {
+        const rows = (data as StockAdjustment[]).map(a => [
+          formatDate(a.date), a.product_name ?? '', a.stock_system,
+          a.stock_physical, a.difference, a.reason ?? '',
+        ])
+        exportCsv(`ajustes_${today}.csv`, ['Fecha', 'Producto', 'Stock sistema', 'Stock físico', 'Diferencia', 'Motivo'], rows)
+        break
+      }
+      case 'movements': {
+        const rows = (data as InventoryMovement[]).map(m => [
+          formatDate(m.date), m.product_name ?? '',
+          MOVEMENT_TYPE_LABELS[m.type] ?? m.type,
+          m.direction === 'in' ? 'Entrada' : m.direction === 'out' ? 'Salida' : 'Ajuste',
+          m.quantity, m.unit, m.notes ?? '',
+        ])
+        exportCsv(`movimientos_${today}.csv`, ['Fecha', 'Producto', 'Tipo', 'Dirección', 'Cantidad', 'Unidad', 'Notas'], rows)
+        break
+      }
+      case 'audit': {
+        const rows = (data as AuditLogEntry[]).map(a => [
+          formatDate(a.created_at.slice(0, 10)), a.invoice_number ?? '',
+          a.entry_date ? formatDate(a.entry_date) : '',
+          a.supplier_name ?? '',
+          a.action === 'edit' ? 'Editada' : 'Anulada',
+          a.user_name,
+        ])
+        exportCsv(`ediciones_facturas_${today}.csv`, ['Fecha edición', 'Folio', 'Fecha factura', 'Proveedor', 'Acción', 'Editado por'], rows)
+        break
+      }
+    }
+  }
+
+  const needsDates      = ['entries', 'exits', 'adjustments', 'movements', 'audit'].includes(reportType)
+  const hasExtraFilters = true
 
   return (
     <div className={styles.page}>
@@ -65,7 +183,7 @@ export default function ReportesPage() {
           {REPORT_OPTIONS.map(opt => (
             <button key={opt.value}
               className={`${styles.reportOption} ${reportType === opt.value ? styles.selected : ''}`}
-              onClick={() => setReportType(opt.value)}
+              onClick={() => selectReportType(opt.value)}
             >
               <strong>{opt.label}</strong>
               <span>{opt.description}</span>
@@ -73,16 +191,81 @@ export default function ReportesPage() {
           ))}
         </div>
 
-        {needsDates && (
-          <div className={styles.dates}>
-            <div className={styles.filterGroup}>
-              <label>Fecha desde</label>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-            </div>
-            <div className={styles.filterGroup}>
-              <label>Fecha hasta</label>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-            </div>
+        {(needsDates || hasExtraFilters) && (
+          <div className={styles.filtersRow}>
+            {needsDates && (
+              <>
+                <div className={styles.filterGroup}>
+                  <label>Fecha desde</label>
+                  <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+                </div>
+                <div className={styles.filterGroup}>
+                  <label>Fecha hasta</label>
+                  <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+                </div>
+              </>
+            )}
+
+            {(reportType === 'stock' || reportType === 'low_stock') && (
+              <div className={styles.filterGroup}>
+                <label>Categoría</label>
+                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                  <option value="">Todas</option>
+                  <option value="Produccion">Producción</option>
+                  <option value="Empaques">Empaques</option>
+                </select>
+              </div>
+            )}
+
+            {(reportType === 'entries') && (
+              <div className={styles.filterGroup}>
+                <label>Folio / Proveedor</label>
+                <input type="text" placeholder="Buscar..." value={filterText}
+                  onChange={e => setFilterText(e.target.value)} style={{ width: 180 }} />
+              </div>
+            )}
+
+            {reportType === 'exits' && (
+              <div className={styles.filterGroup}>
+                <label>Destino</label>
+                <select value={filterDestination} onChange={e => setFilterDestination(e.target.value)}>
+                  <option value="">Todos</option>
+                  <option value="produccion">Producción</option>
+                  <option value="empaque">Empaque</option>
+                  <option value="punto_venta">Punto de venta</option>
+                  <option value="otra">Otra</option>
+                </select>
+              </div>
+            )}
+
+            {reportType === 'adjustments' && (
+              <div className={styles.filterGroup}>
+                <label>Producto</label>
+                <input type="text" placeholder="Buscar producto..." value={filterText}
+                  onChange={e => setFilterText(e.target.value)} style={{ width: 180 }} />
+              </div>
+            )}
+
+            {reportType === 'movements' && (
+              <div className={styles.filterGroup}>
+                <label>Tipo de movimiento</label>
+                <select value={filterMovementType} onChange={e => setFilterMovementType(e.target.value)}>
+                  <option value="">Todos</option>
+                  <option value="initial">Inventario inicial</option>
+                  <option value="entry">Entrada</option>
+                  <option value="exit">Salida</option>
+                  <option value="adjustment">Ajuste</option>
+                </select>
+              </div>
+            )}
+
+            {reportType === 'audit' && (
+              <div className={styles.filterGroup}>
+                <label>Folio / Proveedor / Usuario</label>
+                <input type="text" placeholder="Buscar..." value={filterText}
+                  onChange={e => setFilterText(e.target.value)} style={{ width: 200 }} />
+              </div>
+            )}
           </div>
         )}
 
@@ -90,6 +273,9 @@ export default function ReportesPage() {
           <Button onClick={generateReport} loading={loading}>Generar reporte</Button>
           {activeType && !loading && (
             <span className={styles.resultCount}>{data.length} registro(s)</span>
+          )}
+          {activeType && !loading && data.length > 0 && (
+            <Button variant="secondary" size="sm" onClick={handleExport}>↓ Exportar Excel</Button>
           )}
         </div>
       </Card>

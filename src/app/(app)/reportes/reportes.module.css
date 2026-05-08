@@ -24,10 +24,11 @@
 .reportOption.selected { border-color: var(--success); background: var(--success-soft); }
 .reportOption.selected strong { color: var(--success); }
 
-.dates { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; padding: 0 20px; }
+.filtersRow { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; padding: 0 20px; align-items: flex-end; }
 .filterGroup { display: flex; flex-direction: column; gap: 4px; }
-.filterGroup label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.filterGroup label  { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
 .filterGroup input  { width: 170px; }
+.filterGroup select { width: auto; min-width: 170px; }
 
 .generateBtn { display: flex; align-items: center; gap: 14px; padding: 0 20px 16px; }
 .resultCount { font-size: 13px; color: var(--text-muted); }
