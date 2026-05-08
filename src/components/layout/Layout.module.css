@@ -12,6 +12,40 @@
   min-width: 0;
 }
 
+/* Topbar mobile — oculto en escritorio */
+.topbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.20);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.hamburger {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+.hamburger:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.topbarTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .content {
   flex: 1;
   overflow-y: auto;
@@ -19,4 +53,29 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+/* Backdrop para cerrar el sidebar en móvil */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 40;
+  cursor: pointer;
+}
+
+/* ── Tablet (≤ 1024px) ── */
+@media (max-width: 1024px) {
+  .content { padding: 20px 24px; gap: 20px; }
+}
+
+/* ── Mobile (≤ 768px) ── */
+@media (max-width: 768px) {
+  .topbar { display: flex; }
+  .content { padding: 16px; gap: 16px; }
+}
+
+/* ── Mobile pequeño (≤ 480px) ── */
+@media (max-width: 480px) {
+  .content { padding: 12px; gap: 12px; }
 }

@@ -77,3 +77,25 @@
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .overlay { padding: 10px; align-items: flex-end; }
+  .dialog {
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .xl, .lg { max-width: 100%; }
+  .body { padding: 16px; }
+  .header { padding: 14px 16px; }
+  .footer { padding: 12px 16px; flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .overlay { padding: 0; align-items: flex-end; }
+  .dialog {
+    max-height: 95vh;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+  .sm, .md { max-width: 100%; }
+}

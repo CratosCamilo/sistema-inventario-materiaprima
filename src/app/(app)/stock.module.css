@@ -55,3 +55,17 @@
   color: var(--text-primary);
   border-color: var(--success);
 }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .summary { grid-template-columns: repeat(2, 1fr); }
+  .filters { padding: 12px 14px 0; gap: 10px; }
+  .searchInput { max-width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .page { gap: 16px; }
+  .header { flex-direction: column; gap: 10px; }
+  .summaryCard { padding: 14px; }
+  .summaryNum { font-size: 1.6rem; }
+}

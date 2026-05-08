@@ -105,3 +105,23 @@
 .historyItem:last-child { border-bottom: none; }
 
 .cancelled { opacity: 0.45; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .filters { padding: 12px 14px 0; gap: 10px; }
+  .filterGroup input { width: 130px; }
+  .formGrid2 { grid-template-columns: 1fr; }
+  .itemsHeaderRow { display: none; }
+  .itemRow {
+    grid-template-columns: 1fr 80px 70px;
+    grid-template-rows: auto auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .page { gap: 16px; }
+  .header { flex-direction: column; gap: 10px; }
+  .filters { flex-direction: column; align-items: flex-start; }
+  .filterGroup input { width: 100%; }
+  .totalsRow { flex-direction: column; gap: 8px; align-items: flex-end; }
+}

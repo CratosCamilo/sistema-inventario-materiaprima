@@ -32,3 +32,15 @@
   border-radius: var(--radius-sm); padding: 10px 14px;
   color: var(--danger); font-size: 13px;
 }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .filters { padding: 12px 14px 0; gap: 10px; }
+  .searchInput { max-width: 100%; }
+  .formGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .page { gap: 16px; }
+  .header { flex-direction: column; gap: 10px; }
+}

@@ -16,7 +16,12 @@ const NAV_ITEMS = [
   { to: '/configuracion',  label: 'Configuración',   icon: '⚙' },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  open?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { warehouse, warehouses, switchWarehouse } = useWarehouse()
@@ -27,15 +32,24 @@ export function Sidebar() {
     router.refresh()
   }
 
+  function handleNavClick() {
+    onClose?.()
+  }
+
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${open ? styles.open : ''}`}>
       <div className={styles.brand}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logonb.png" alt="Logo" className={styles.brandLogo} />
-        <div>
+        <div className={styles.brandText}>
           <div className={styles.brandName}>Inventario</div>
           <div className={styles.brandSub}>Materia Prima</div>
         </div>
+        {onClose && (
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Cerrar menú">
+            ✕
+          </button>
+        )}
       </div>
 
       <div className={styles.warehouseSection}>
@@ -61,6 +75,7 @@ export function Sidebar() {
               key={item.to}
               href={item.to}
               className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+              onClick={handleNavClick}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>

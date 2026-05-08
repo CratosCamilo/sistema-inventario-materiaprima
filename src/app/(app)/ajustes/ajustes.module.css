@@ -27,3 +27,17 @@
 .diffBox   { align-items: center; }
 .physInput { font-size: 1.1rem; font-weight: 600; text-align: center; }
 .unitLabel { font-size: 11px; color: var(--text-muted); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .filters { padding: 12px 14px 0; gap: 10px; }
+  .filterGroup input { width: 130px; }
+  .formGrid2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .page { gap: 16px; }
+  .header { flex-direction: column; gap: 10px; }
+  .stockCompare { flex-direction: column; align-items: flex-start; }
+  .arrow { display: none; }
+}
