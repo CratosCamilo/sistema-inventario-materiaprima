@@ -1,6 +1,6 @@
 # PROGRESS.md — Estado del proyecto
 
-Última actualización: 2026-05-08
+Última actualización: 2026-05-08 (v2 completa + features adicionales)
 
 ---
 
@@ -180,9 +180,9 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 
 ## Pendiente / roadmap
 
-- [ ] Anulación de entradas y salidas (campo `status` listo, lógica pendiente)
-- [ ] Exportación PDF
+- [x] Anulación de entradas y salidas — revierte stock, graba en audit_log, botón en modal (solo admin)
+- [x] Exportación PDF — todos los reportes, impresión directa desde el navegador (sin libs nuevas)
+- [x] Vista de historial de movimientos por producto individual — botón en tabla de stock, carga bajo demanda
+- [x] Paginación para tablas largas — prop `pageSize` en Table, 25 registros/página en stock, entradas, salidas, ajustes, productos
+- [x] Modo responsive / tablet — sidebar drawer hamburger (≤768px), modales bottom-sheet, grids colapsan, padding adaptativo
 - [ ] Inventario inicial desde UI (service listo, sin página dedicada)
-- [ ] Vista de historial de movimientos por producto individual
-- [ ] Paginación para tablas largas
-- [ ] Modo responsive / tablet
