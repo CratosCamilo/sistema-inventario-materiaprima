@@ -1,0 +1,50 @@
+:root {
+  /* ── Paleta base ─────────────────────────────────── */
+  --bg-primary:      #006a6b;
+  --bg-panel:        #007d7e;
+  --bg-surface:      #008788;
+  --bg-surface-hover:#009899;
+
+  /* ── Texto ───────────────────────────────────────── */
+  --text-primary:    #f3fbfb;
+  --text-secondary:  rgba(243, 251, 251, 0.78);
+  --text-muted:      rgba(243, 251, 251, 0.50);
+
+  /* ── Bordes ──────────────────────────────────────── */
+  --border:          rgba(191, 191, 191, 0.22);
+  --border-strong:   rgba(191, 191, 191, 0.42);
+
+  /* ── Acciones ────────────────────────────────────── */
+  --primary:         #007d7e;
+  --primary-hover:   #009192;
+  --primary-active:  #00a5a6;
+
+  /* ── Estado ──────────────────────────────────────── */
+  --danger:          #ff4d6d;
+  --danger-soft:     rgba(255, 77, 109, 0.15);
+  --warning:         #f7c948;
+  --warning-soft:    rgba(247, 201, 72, 0.15);
+  --success:         #2dd4bf;
+  --success-soft:    rgba(45, 212, 191, 0.15);
+
+  /* ── Sombras ─────────────────────────────────────── */
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.30);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.35);
+
+  /* ── Radios ──────────────────────────────────────── */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+
+  /* ── Tipografía ──────────────────────────────────── */
+  --font-sans:  'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ── Transiciones ────────────────────────────────── */
+  --transition: 150ms ease;
+
+  /* ── Layout ──────────────────────────────────────── */
+  --sidebar-width: 220px;
+  --topbar-height: 56px;
+}

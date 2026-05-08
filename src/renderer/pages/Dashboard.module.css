@@ -1,0 +1,66 @@
+.page { display: flex; flex-direction: column; gap: 24px; }
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.header h1 { margin-bottom: 4px; }
+
+/* ── Métricas ── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.metricCard {
+  text-align: center;
+  padding: 24px 16px;
+  border-top: 3px solid transparent;
+}
+
+.metricValue {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.metricLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.metricDesc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.metric-success { border-top-color: var(--success); }
+.metric-warning { border-top-color: var(--warning); }
+.metric-danger  { border-top-color: var(--danger);  }
+.metric-neutral { border-top-color: var(--border-strong); }
+
+/* ── Alert card ── */
+.alertCard {
+  border-left: 3px solid var(--warning);
+}
+
+/* ── Dos columnas ── */
+.twoCol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
