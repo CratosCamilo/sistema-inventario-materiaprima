@@ -140,6 +140,7 @@ export default function StockPage() {
           data={loading ? [] : filtered}
           rowKey={r => r.id}
           emptyText={loading ? 'Cargando...' : 'No se encontraron productos'}
+          pageSize={25}
         />
       </Card>
 

@@ -284,6 +284,7 @@ export default function EntradasPage() {
           emptyText="Sin entradas registradas"
           onRowClick={openDetail}
           rowClassName={r => r.status === 'cancelled' ? styles.cancelled : ''}
+          pageSize={25}
         />
       </Card>
 
