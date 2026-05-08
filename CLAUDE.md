@@ -17,51 +17,52 @@ Es un proyecto independiente — existe otro sistema separado (ya terminado) par
 
 ## Estado actual del proyecto
 
-### Dirección técnica (IMPORTANTE — cambio de sesión anterior)
+### Stack actual (migración COMPLETA — 2026-05-08)
 
-El sistema comenzó como **app de escritorio con Electron + React + SQLite**.
-Toda la base de código actual está construida bajo esa arquitectura.
+El sistema migró de Electron + React + SQLite local a **Next.js 14 App Router** con base de datos cloud. Todo el código Electron ha sido eliminado.
 
-**El cliente aprobó un cambio de dirección: el sistema ahora será una aplicación web (online) con base de datos en la nube.**
+- **Frontend:** Next.js 14 App Router, React 18, TypeScript, CSS Modules
+- **Backend:** Next.js API Routes (App Router)
+- **ORM:** Drizzle ORM con `@libsql/client`
+- **Base de datos:** SQLite local (`file:local.db`) en dev / Turso en producción
+- **Auth:** JWT con `jose`, httpOnly cookie `session`, bcryptjs para hashing
+- **Instalación:** `npm install --ignore-scripts` (evita scripts de Electron en cache)
 
-- El frontend en React + TypeScript se puede reutilizar casi en su totalidad.
-- El proceso main de Electron (`src/main/`) y toda la capa de IPC deben migrarse a un backend web.
-- SQLite local se reemplazará por un servicio de base de datos cloud (candidatos: Turso, PlanetScale, Supabase — no decidido aún).
-- La migración aún **no se ha implementado**. Es el próximo paso.
-
-### Lo que está construido (base Electron, pendiente de migrar a web)
+### Lo que está construido
 
 Ver [`PROGRESS.md`](./PROGRESS.md) para la checklist detallada.
 
 ---
 
-## Alcance del sistema (v1)
+## Alcance del sistema
 
-**Lo que SÍ incluye:**
-- Registrar productos / materias primas
+**Lo que SÍ incluye (v1 + v2 completados):**
+- Registro de productos / materias primas
 - Inventario inicial
-- Entradas de materia prima (con folio/factura para verificación posterior)
+- Entradas de materia prima (con folio/factura obligatorio, IVA por línea, auditoría de ediciones)
 - Salidas de materia prima (a producción, empaque, punto de venta, otra)
-- Stock actual con estados visual: normal / bajo / crítico
+- Stock actual con estados visuales: normal / bajo / crítico
 - Alertas de stock mínimo
 - Ajustes / conteo físico
-- Reportes básicos (vistas internas con tablas)
-- Configuración básica (nombre empresa)
+- Reportes (stock, bajo mínimo, entradas, salidas, ajustes, movimientos, ediciones de facturas)
+- Configuración (nombre empresa, IVA por defecto)
+- Login con JWT y roles de acceso
+- Dos bodegas (Panadería y Pastelería)
+- Gestión de usuarios (admin)
+- Auditoría de ediciones
 
-**Lo que NO incluye en v1:**
-- Login / autenticación (viene en v2)
-- Multiusuario (viene en v2)
-- División de bodegas (viene en v2)
+**Lo que NO incluye:**
 - Integración con DIAN
 - Costeo / recetas automáticas
 - Facturación / ventas
-- Exportación PDF/Excel (estructura lista, implementación pendiente)
+- Exportación PDF/Excel
 - Control de pan terminado (es otro sistema separado)
 
-**Funcionalidades confirmadas para v2:**
-- Login con tipos de usuarios
-- División de dos bodegas
-- (Más por definir con el cliente)
+**Roles:**
+- `admin`: todo + gestión de usuarios
+- `operador`: todo excepto gestión de usuarios
+- `entradas`: stock + entradas + ajustes
+- `salidas`: stock + salidas + ajustes
 
 ---
 
@@ -71,97 +72,109 @@ Ver [`PROGRESS.md`](./PROGRESS.md) para la checklist detallada.
 
 | Tabla | Descripción |
 |-------|-------------|
-| `products` | Materias primas. Incluye `stock_current` (actualizado en cada movimiento), `stock_minimum`, `initial_stock_loaded`, `active` |
-| `inventory_movements` | Historial central de todos los movimientos. `type`: `initial \| entry \| exit \| adjustment`. `direction`: `in \| out \| adjustment` |
-| `purchase_entries` | Cabecera de cada entrada (con `invoice_number` para verificar facturas) |
-| `purchase_entry_items` | Líneas de cada entrada |
+| `users` | Usuarios con roles y hash de contraseña |
+| `warehouses` | Bodegas (Panadería id=1, Pastelería id=2) |
+| `products` | Materias primas. Incluye `stock_current`, `stock_minimum`, `initial_stock_loaded`, `active`, `category` (Produccion/Empaques) |
+| `inventory_movements` | Historial central. `type`: `initial\|entry\|exit\|adjustment`. `direction`: `in\|out\|adjustment` |
+| `purchase_entries` | Cabecera de cada entrada (con `invoice_number` obligatorio, `subtotal`, `iva_total`, `total`, auditoría) |
+| `purchase_entry_items` | Líneas de entrada con `applies_iva`, `iva_rate`, `line_total`, `iva_amount` |
 | `exits` | Cabecera de cada salida |
-| `exit_items` | Líneas de cada salida |
+| `exit_items` | Líneas de salida |
 | `stock_adjustments` | Ajustes por conteo físico |
-| `suppliers` | Proveedores (campo opcional en entradas) |
-| `settings` | Configuración clave-valor (`company_name`, etc.) |
+| `audit_log` | Auditoría de ediciones/anulaciones (`entity_type: 'purchase_entry'`, `changes` en JSON) |
+| `settings` | Configuración clave-valor (`company_name`, `iva_rate_default`) |
 
 ### Reglas de negocio críticas
 
-1. **Stock almacenado:** `products.stock_current` se guarda y actualiza en cada movimiento dentro de una transacción. No se calcula al vuelo. `inventory_movements` es la fuente histórica.
-2. **Inventario inicial:** Solo se puede cargar una vez por producto (controlado por `initial_stock_loaded = 1`). Correcciones posteriores van por Ajustes.
-3. **Salidas con validación:** El service verifica `stock_current >= cantidad` antes de escribir cualquier registro.
-4. **Sin DELETE para corregir:** Todos los registros tienen `status TEXT ('active' | 'cancelled')` para anulaciones futuras sin borrar datos.
-5. **Unidades:** Cada producto tiene `visual_unit` (lo que ve el usuario) y `conversion_factor` (informativo para v1, sin conversiones automáticas).
-6. **Estados de stock:**
+1. **Stock almacenado:** `products.stock_current` se actualiza en cada movimiento dentro de una transacción. No se calcula al vuelo.
+2. **Inventario inicial:** Solo se puede cargar una vez por producto (`initial_stock_loaded = 1`). Correcciones van por Ajustes.
+3. **Salidas con validación:** El service verifica `stock_current >= cantidad` antes de escribir.
+4. **Sin DELETE:** Todos los registros tienen `status ('active' | 'cancelled')` para anulaciones sin borrar datos.
+5. **Folio obligatorio:** `invoice_number` es requerido en entradas (validado en frontend y backend).
+6. **IVA por línea:** `iva_amount = line_total * iva_rate / 100`. IVA activo por defecto con tasa de configuración.
+7. **Estados de stock:**
    - `normal`: `stock_current > stock_minimum`
    - `low`: `stock_current <= stock_minimum`
    - `critical`: `stock_current <= stock_minimum * 0.5`
+8. **Warehouse selector:** `warehouse_id` se persiste en cookie del cliente y se envía como query param en todas las API calls.
 
 ---
 
-## Arquitectura actual (Electron — pendiente de migrar)
+## Arquitectura
 
 ```
 src/
-  main/                        # Proceso Electron (Node.js)
-    database/
-      connection.ts            # better-sqlite3, WAL mode, FK on
-      migrations.ts            # Creación de tablas (idempotente)
-      seed.ts                  # 9 productos demo + movimientos demo
-    services/                  # Toda la lógica SQL aquí
-      productService.ts
-      entryService.ts
-      exitService.ts
-      adjustmentService.ts
-      movementService.ts
-      dashboardService.ts
-      settingsService.ts
-      supplierService.ts
-    ipc/                       # Solo puentes IPC, sin lógica
-      productHandlers.ts
-      entryHandlers.ts
-      exitHandlers.ts
-      adjustmentHandlers.ts
-      dashboardHandlers.ts
-    index.ts                   # Entry point Electron
-    preload.ts                 # contextBridge → window.electronAPI
-
-  renderer/                    # React (reutilizable para web)
-    types/index.ts             # Todos los tipos TypeScript
-    api/index.ts               # Wrapper del IPC (a reemplazar por fetch/SDK en web)
-    components/
-      layout/                  # Sidebar, Layout
-      ui/                      # Button, Card, Badge, Modal, Table (+ CSS Modules)
-    pages/                     # Dashboard, Products, Entries, Exits, Stock, Adjustments, Reports, Settings
-    utils/formatters.ts
-    styles/variables.css       # Paleta teal (ver BRANDING.md)
-    styles/global.css
+  app/
+    (app)/                        # Rutas protegidas (layout con sidebar)
+      page.tsx                    # Stock actual (/)
+      resumen/page.tsx            # Dashboard
+      productos/page.tsx
+      entradas/page.tsx
+      salidas/page.tsx
+      ajustes/page.tsx
+      reportes/page.tsx
+      configuracion/page.tsx
+      layout.tsx                  # Layout con SessionProvider + sidebar
+    api/
+      auth/login/route.ts
+      auth/logout/route.ts
+      products/route.ts + [id]/route.ts + initial-stock/route.ts
+      entries/route.ts + [id]/route.ts
+      exits/route.ts + [id]/route.ts
+      adjustments/route.ts
+      movements/route.ts
+      dashboard/route.ts
+      settings/route.ts
+      users/route.ts + [id]/route.ts
+      warehouses/route.ts
+      audit/route.ts
+      setup/route.ts              # Seed inicial (público en dev)
+    login/page.tsx
+    layout.tsx                    # Root layout con providers
+  components/
+    ui/                           # Button, Card, Badge, Modal, Table, Combobox
+    layout/                       # Sidebar, AppProviders
+  lib/
+    db/
+      index.ts                    # Conexión Drizzle (libsql local/Turso)
+      schema.ts                   # Drizzle schema completo
+      seed.ts                     # Seed con usuario admin + productos demo
+    services/                     # productService, entryService, exitService,
+                                  # adjustmentService, movementService,
+                                  # dashboardService, settingsService, userService
+    auth/session.ts               # JWT: signToken, verifyToken, getSession
+    api/client.ts                 # Fetch client tipado para páginas
+    session-context.tsx
+    warehouse-context.tsx
+  middleware.ts                   # Protección JWT de rutas
+  styles/
+    variables.css                 # Paleta teal (ver BRANDING.md)
+    global.css
+  types/index.ts                  # Todos los tipos TypeScript
+  utils/formatters.ts             # formatDate, formatNumber, formatCurrency, es-CO
 ```
-
-### Capa de migración a web
-
-Al migrar, los cambios son quirúrgicamente en:
-- `src/main/` → reemplazar por backend (API REST o tRPC o similar)
-- `src/renderer/api/index.ts` → reemplazar `window.electronAPI` por llamadas HTTP
-- El resto del renderer (components, pages, styles) se reutiliza casi sin cambios
 
 ---
 
 ## Stack tecnológico
 
-| Componente | Tecnología actual | Target web |
-|------------|------------------|------------|
-| Frontend | React 18 + TypeScript | React 18 + TypeScript (mismo) |
-| Estilos | CSS Modules + variables CSS | CSS Modules (mismo) |
-| Enrutamiento | react-router-dom v6 | react-router-dom v6 (mismo) |
-| Build frontend | Vite | Vite (mismo) |
-| Runtime backend | Electron (Node.js main process) | Node.js / Deno / Bun — por decidir |
-| Base de datos | SQLite local (better-sqlite3) | Cloud SQL — candidatos: Turso, Supabase, PlanetScale |
-| IPC | Electron contextBridge | API REST / tRPC / Server Actions — por decidir |
-| Desktop wrapper | Electron 29 | — (ya no aplica) |
+| Componente | Tecnología |
+|------------|------------|
+| Framework | Next.js 14 (App Router) |
+| Frontend | React 18 + TypeScript |
+| Estilos | CSS Modules + variables CSS (sin librerías UI) |
+| ORM | Drizzle ORM |
+| Base de datos dev | SQLite local (`file:local.db`) |
+| Base de datos prod | Turso (libsql) |
+| Auth | JWT (`jose`) + bcryptjs, cookie httpOnly `session` |
+| Config | `next.config.mjs` (NO `.ts` — no soportado en Next.js 14) |
 
 ---
 
 ## Datos de referencia
 
-### Categorías de productos usadas
-Harinas, Endulzantes, Lácteos, Embutidos, Huevos, Empaques, Aceites, Levaduras, Otros
+### Categorías de productos
+`Produccion`, `Empaques`
 
 ### Unidades usadas
 kg, gramos, litros, ml, unidad, bulto, caja, paquete, rollo, cartón, bolsa
@@ -169,38 +182,44 @@ kg, gramos, litros, ml, unidad, bulto, caja, paquete, rollo, cartón, bolsa
 ### Destinos de salida
 `produccion`, `empaque`, `punto_venta`, `otra`
 
-### Ejemplos de productos (seed demo)
-Harina de trigo (bulto=50kg), Azúcar (bulto=50kg), Mantequilla 500g (caja=24un), Mantequilla 1000g (caja=12un), Queso (kg), Jamón (kg), Huevos (cartón=30un), Plástico para empaque (rollo), Bolsas pequeñas (paquete=100un)
+### Credenciales seed (dev)
+- Usuario: `admin` / Contraseña: `Admin123!`
 
 ---
 
 ## Convenciones de código
 
 - Sin comentarios obvios. Solo comentar el **por qué** cuando no es evidente.
-- Sin docstrings largos. Un `//` corto máximo.
-- Sin librerías UI pesadas. Solo CSS Modules + variables CSS.
-- SQL exclusivamente en `services/`. Ningún componente React toca la base de datos.
-- Todos los tipos en `src/renderer/types/index.ts`.
-- Formateo de fechas y números siempre con `formatters.ts` (locale `es-CO`).
-- `api/index.ts` es la única capa de comunicación que los componentes React usan.
+- Sin docstrings largos.
+- Sin librerías UI externas. Solo CSS Modules + variables CSS.
+- SQL exclusivamente en `src/lib/services/`. Ningún componente React toca la DB.
+- Todos los tipos en `src/types/index.ts`.
+- Formateo de fechas y números siempre con `src/utils/formatters.ts` (locale `es-CO`).
+- `src/lib/api/client.ts` es la única capa que los componentes React usan para llamar a la API.
+- `warehouse_id` siempre como query param en todas las llamadas API que lo necesiten.
 
 ---
 
-## Comandos útiles (stack actual Electron)
+## Comandos útiles
 
 ```bash
-npm install          # Instala deps + ejecuta electron-rebuild automáticamente
-npm run dev          # Vite dev server + compila main + lanza Electron
-npm run build        # Build completo
-npx tsc -p tsconfig.electron.json --noEmit   # Type-check del main process
-npx vite build       # Build del renderer solamente
+npm install --ignore-scripts   # Instalar deps (--ignore-scripts evita error de Electron en cache)
+npm run dev                    # Servidor de desarrollo en localhost:3000
+npm run build                  # Build de producción
+npx tsc --noEmit               # Type-check
+
+# Primera vez / reset de BD:
+# Visitar http://localhost:3000/api/setup  (crea tablas + seed con admin y productos demo)
 ```
 
 ---
 
 ## Notas técnicas importantes
 
-- `better-sqlite3` requiere compilarse contra el runtime de Electron, no contra el Node del sistema. El `postinstall` ejecuta `electron-rebuild` automáticamente. Esto resolvió el error de C++20 con Node 23.
-- El renderer usa `HashRouter` (no `BrowserRouter`) porque Electron carga archivos locales.
-- Al migrar a web, cambiar a `BrowserRouter`.
-- La fuente Inter se carga desde Google Fonts en el `index.html`. En una app web productiva, considerar alojarla localmente.
+- `next.config.mjs` requerido (Next.js 14 no soporta `next.config.ts`).
+- `"target": "ES2017"` en tsconfig para evitar issues con `Map.entries()`.
+- `npm install --ignore-scripts` requerido si había Electron instalado (DLLs bloqueadas).
+- `color-scheme: dark` en inputs del CSS global para que el date picker use tema oscuro.
+- El Combobox (`src/components/ui/Combobox.tsx`) usa React portal (`createPortal`) para que el dropdown flote sobre grids y modales sin quedar atrapado en el layout.
+- La cookie `warehouse_id` persiste la bodega activa entre recargas.
+- El `audit_log` graba ediciones con `entity_type: 'purchase_entry'` (no `'entry'`).

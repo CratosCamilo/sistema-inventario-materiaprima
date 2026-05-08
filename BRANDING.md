@@ -7,7 +7,7 @@ El sistema debe sentirse como un dashboard profesional para fábrica — no como
 
 ## Paleta de colores
 
-Definidas como variables CSS en [`src/renderer/styles/variables.css`](./src/renderer/styles/variables.css).
+Definidas como variables CSS en [`src/styles/variables.css`](./src/styles/variables.css).
 
 ### Fondos y superficies
 
@@ -77,8 +77,8 @@ Variable mono: `--font-mono: 'JetBrains Mono', 'Fira Code', monospace;` (para c�
 | `h1` | `1.5rem` | 700 | Títulos de página |
 | `h2` | `1.25rem` | 600 | Títulos de sección |
 | `h3` | `1rem` | 600 | Títulos de card |
-| Body | `14px` | 400 | Texto general |
-| Labels | `11-12px` | 600 | Labels de campos, headers de tabla |
+| Body | `15px` | 400 | Texto general |
+| Labels | `12px` | 600 | Labels de campos |
 | Meta | `12-13px` | 400 | Fechas, descripciones, subtítulos |
 | Micro | `11px` | 400–600 | Badges, hints, versión |
 
@@ -96,11 +96,20 @@ color: var(--text-secondary);
 ### Headers de tabla
 
 ```css
-font-size: 11px;
-font-weight: 600;
+font-size: 13px;
+font-weight: 700;
 text-transform: uppercase;
 letter-spacing: 0.06em;
 color: var(--text-muted);
+```
+
+### Celdas de tabla
+
+```css
+font-size: 15px;
+text-transform: uppercase;
+letter-spacing: 0.02em;
+color: var(--text-secondary);
 ```
 
 ---
@@ -162,7 +171,7 @@ Regla del umbral:
 - Header: `rgba(0,0,0,0.15)` con borde inferior `--border-strong`
 - Filas: hover con `rgba(255,255,255,0.04)`
 - Borde entre filas: `1px solid --border`
-- Padding de celda: `11px 14px`
+- Padding de celda: `12px 16px`
 - Texto de celda: `--text-secondary`
 - Texto vacío (emptyText): centrado, italic, `--text-muted`
 
@@ -173,6 +182,7 @@ Regla del umbral:
 - Animación: `slideUp` 150ms (desde `translateY(16px)` a 0)
 - Footer: botones alineados a la derecha, gap 10px
 - Cierra con: Escape, click en overlay, botón Cerrar/✕
+- Tamaños: `sm` 400px / `md` 560px / `lg` 800px / `xl` 1100px
 
 ### Inputs y selects
 

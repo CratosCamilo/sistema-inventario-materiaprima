@@ -6,3 +6,7 @@ release/
 *.db-shm
 *.db-wal
 .env
+.env.local
+.env.*.local
+.next/
+out/

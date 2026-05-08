@@ -1,0 +1,42 @@
+.page   { display: flex; flex-direction: column; gap: 24px; }
+.header h1 { margin-bottom: 4px; }
+
+.bottomGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.form { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px; }
+
+.label {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 5px;
+}
+
+.hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+.saveRow    { display: flex; align-items: center; gap: 12px; }
+.savedMsg   { font-size: 13px; color: var(--success); font-weight: 600; }
+
+.formError {
+  background: var(--danger-soft); border: 1px solid var(--danger);
+  border-radius: var(--radius-sm); padding: 10px 14px; color: var(--danger); font-size: 13px;
+}
+
+.about { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; }
+.aboutRow {
+  display: flex; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 14px; color: var(--text-secondary);
+}
+.aboutRow:last-child { border-bottom: none; }
+.aboutRow strong { color: var(--text-primary); }
+
+.actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.eyeBtn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; cursor: pointer; font-size: 14px; padding: 2px;
+}

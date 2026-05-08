@@ -1,0 +1,29 @@
+.page   { display: flex; flex-direction: column; gap: 24px; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.header h1 { margin-bottom: 4px; }
+.filters { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; padding: 16px 20px 0; }
+.filterGroup { display: flex; flex-direction: column; gap: 4px; }
+.filterGroup label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.filterGroup input  { width: 150px; }
+.form      { display: flex; flex-direction: column; gap: 16px; }
+.formGrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.label {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 5px;
+}
+.formError {
+  background: var(--danger-soft); border: 1px solid var(--danger);
+  border-radius: var(--radius-sm); padding: 10px 14px; color: var(--danger); font-size: 13px;
+}
+
+.stockCompare {
+  display: flex; gap: 16px; align-items: center;
+  background: var(--bg-primary); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 16px;
+}
+.stockBox  { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.stockBox strong { font-size: 1.3rem; color: var(--text-primary); }
+.arrow     { color: var(--text-muted); font-size: 1.4rem; flex-shrink: 0; }
+.diffBox   { align-items: center; }
+.physInput { font-size: 1.1rem; font-weight: 600; text-align: center; }
+.unitLabel { font-size: 11px; color: var(--text-muted); }

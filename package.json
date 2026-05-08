@@ -1,52 +1,36 @@
 {
   "name": "sistema-inventario-materiaprima",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "private": true,
   "description": "Sistema de inventario de materia prima para fábrica de pan",
-  "main": "dist-electron/main/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
-    "dev:vite": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && tsc -p tsconfig.electron.json && electron .",
-    "build": "npm run build:vite && npm run build:electron",
-    "build:vite": "vite build",
-    "build:electron": "tsc -p tsconfig.electron.json",
-    "dist": "npm run build && electron-builder",
-    "postinstall": "electron-rebuild -f -w better-sqlite3",
-    "lint": "eslint src --ext ts,tsx"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.3"
+    "@libsql/client": "^0.6.0",
+    "bcryptjs": "^2.4.3",
+    "drizzle-orm": "^0.33.0",
+    "jose": "^5.0.0",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
-    "@types/better-sqlite3": "^7.6.8",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.30",
-    "@types/react": "^18.2.67",
-    "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^4.2.1",
-    "concurrently": "^8.2.2",
-    "electron": "^29.1.4",
-    "electron-builder": "^24.13.3",
-    "typescript": "^5.4.3",
-    "vite": "^5.2.3",
-    "wait-on": "^7.2.0"
-  },
-  "build": {
-    "appId": "com.fabrica.inventario-materiaprima",
-    "productName": "Inventario Materia Prima",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "public/icon.ico"
-    }
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "dotenv": "^16.4.0",
+    "drizzle-kit": "^0.24.0",
+    "eslint": "^8",
+    "eslint-config-next": "^14.2.0",
+    "typescript": "^5.4.3"
   }
 }

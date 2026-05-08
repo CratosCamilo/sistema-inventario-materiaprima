@@ -1,201 +1,180 @@
 # PROGRESS.md — Estado del proyecto
 
-Última actualización: 2026-05-07
+Última actualización: 2026-05-08
 
 ---
 
 ## Estado general
 
 ```
-Fase actual:  Base Electron construida — pendiente migración a web
-Próximo paso: Migrar arquitectura a app web con DB en la nube
+Fase actual:  v2 completa — app web Next.js con auth, bodegas y auditoría
+Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 ```
 
 ---
 
 ## Infraestructura y configuración
 
-- [x] `package.json` con scripts dev/build/dist
-- [x] `tsconfig.json` (renderer React)
-- [x] `tsconfig.electron.json` (main process)
-- [x] `vite.config.ts`
-- [x] `.gitignore`
-- [x] `better-sqlite3` v11 + `@electron/rebuild` en postinstall (compila contra Electron, no Node del sistema)
-- [ ] Migración a app web (cambio de dirección aprobado por cliente)
-- [ ] Selección de base de datos cloud (candidatos: Turso, Supabase, PlanetScale)
-- [ ] Backend web (API REST / tRPC / Server Actions — por decidir)
+- [x] `package.json` Next.js 14 (Electron eliminado completamente)
+- [x] `tsconfig.json` con `target: ES2017`
+- [x] `next.config.mjs`
+- [x] `drizzle.config.ts`
+- [x] `.env.example` con `DATABASE_URL`, `JWT_SECRET`, `ALLOW_SEED`
+- [x] `.gitignore` (incluye `local.db`, `.env.local`)
+- [x] `npm install --ignore-scripts` documentado (evita error de DLLs de Electron en cache)
 
 ---
 
 ## Base de datos
 
-- [x] Tabla `products` (con `initial_stock_loaded`, `stock_current`, `active`, `updated_at`)
-- [x] Tabla `inventory_movements` (type: initial/entry/exit/adjustment | direction: in/out/adjustment)
-- [x] Tabla `purchase_entries` (con `invoice_number` para verificación de facturas, `status`)
-- [x] Tabla `purchase_entry_items`
-- [x] Tabla `exits` (con `destination`, `status`)
-- [x] Tabla `exit_items`
-- [x] Tabla `stock_adjustments` (con `status`)
-- [x] Tabla `suppliers`
-- [x] Tabla `settings` (clave-valor)
-- [x] Índices en movements (product_id, date, type)
-- [x] Migrations idempotentes (CREATE TABLE IF NOT EXISTS)
-- [x] Seed con 9 productos demo + entradas + salidas de ejemplo
+- [x] Schema Drizzle completo (`src/lib/db/schema.ts`)
+  - `users` (roles: admin, operador, entradas, salidas)
+  - `warehouses` (Panadería id=1, Pastelería id=2)
+  - `products` (stock_current, stock_minimum, initial_stock_loaded, active, category)
+  - `inventory_movements` (type, direction, warehouse_id)
+  - `purchase_entries` (invoice_number, subtotal, iva_total, total, edited_by, status)
+  - `purchase_entry_items` (applies_iva, iva_rate, line_total, iva_amount)
+  - `exits` + `exit_items`
+  - `stock_adjustments`
+  - `audit_log` (entity_type, entity_id, action, user_id, changes JSON)
+  - `settings` (clave-valor)
+- [x] Conexión dual: SQLite local dev / Turso prod (`src/lib/db/index.ts`)
+- [x] Seed con admin, 2 bodegas, productos demo (`src/lib/db/seed.ts`)
+- [x] Ruta pública `/api/setup` para ejecutar seed desde el navegador en dev
 
 ---
 
-## Servicios / lógica de negocio
+## Servicios (src/lib/services/)
 
-- [x] `productService` — CRUD completo, `setInitialStock` con protección de duplicados
-- [x] `entryService` — crear entrada con ítems, actualiza stock en transacción
-- [x] `exitService` — crear salida con validación de stock suficiente, transacción
-- [x] `adjustmentService` — ajuste con comparación sistema vs físico, dirección automática
-- [x] `movementService` — historial por producto, recientes globales
-- [x] `dashboardService` — métricas, alertas, últimas entradas/salidas
-- [x] `settingsService` — get/set/getAll por clave
-- [x] `supplierService` — CRUD básico
-- [ ] Servicio de reportes avanzado (actualmente las páginas llaman directamente a los demás services)
-- [ ] Exportación PDF/Excel (estructura lista, sin implementar)
-- [ ] Anulación de entradas/salidas (campo `status` listo, lógica pendiente)
+- [x] `productService` — CRUD, deactivate, setInitialStock
+- [x] `entryService` — crear/editar con IVA por línea, auditoría en audit_log, filtro por folio
+- [x] `exitService` — crear con validación de stock suficiente
+- [x] `adjustmentService` — ajuste físico vs sistema, dirección automática
+- [x] `movementService` — historial por filtros
+- [x] `dashboardService` — métricas, alertas, últimos movimientos
+- [x] `settingsService` — upsert clave-valor
+- [x] `userService` — CRUD, nunca expone password_hash
 
 ---
 
-## IPC / API layer (Electron)
+## API Routes (src/app/api/)
 
-- [x] `productHandlers.ts`
-- [x] `entryHandlers.ts`
-- [x] `exitHandlers.ts`
-- [x] `adjustmentHandlers.ts`
-- [x] `dashboardHandlers.ts` (incluye settings y suppliers)
-- [x] `preload.ts` con contextBridge completo (`window.electronAPI`)
-- [x] `src/renderer/api/index.ts` — wrapper limpio del IPC para componentes React
-- [ ] Migrar `api/index.ts` a llamadas HTTP cuando se implemente el backend web
+- [x] `POST /api/auth/login` — valida credenciales, emite JWT cookie
+- [x] `POST /api/auth/logout` — borra cookie
+- [x] `GET/POST /api/products` — listar / crear
+- [x] `GET/PUT/DELETE /api/products/[id]`
+- [x] `POST /api/products/initial-stock`
+- [x] `GET/POST /api/entries` — listar (filtros fecha + folio) / crear
+- [x] `GET/PUT/DELETE /api/entries/[id]`
+- [x] `GET/POST /api/exits`
+- [x] `GET /api/exits/[id]`
+- [x] `GET/POST /api/adjustments`
+- [x] `GET /api/movements`
+- [x] `GET /api/dashboard`
+- [x] `GET/PUT /api/settings`
+- [x] `GET/POST /api/users`
+- [x] `GET/PUT /api/users/[id]`
+- [x] `GET /api/warehouses`
+- [x] `GET /api/audit` — ediciones de facturas con join a purchase_entries
+- [x] `GET/POST /api/setup` — seed público en dev
 
 ---
 
-## Frontend — Componentes UI
+## Auth y middleware
+
+- [x] JWT con `jose` (signToken, verifyToken, getSession)
+- [x] bcryptjs para hashing de contraseñas
+- [x] Cookie httpOnly `session` (7 días)
+- [x] `src/middleware.ts` — protege todas las rutas excepto login y setup
+- [x] RBAC en cada API route
+- [x] `SessionProvider` + `useSession()` hook
+- [x] Página `/login` con form y manejo de error
+
+---
+
+## Frontend — Componentes UI (src/components/ui/)
 
 - [x] `Button` (variantes: primary, secondary, danger, ghost | tamaños: sm, md, lg | loading state)
 - [x] `Card` + `CardHeader`
 - [x] `Badge` + `StockStatusBadge`
-- [x] `Modal` (tamaños sm/md/lg, cierra con Escape, cierra al click en overlay)
-- [x] `Table` (genérico con tipos, columnas con render custom, click en fila)
-- [ ] `Input` con label (actualmente inputs crudos en formularios)
-- [ ] `Select` con label
-- [ ] `Toast` / notificaciones de éxito/error
-- [ ] `Skeleton` / loading states más elaborados
-- [ ] `Pagination` para tablas largas
-- [ ] `DateRangePicker` dedicado
+- [x] `Modal` (tamaños sm/md/lg/xl, cierra con Escape, click en overlay)
+- [x] `Table` (genérico tipado, columnas con render custom, click en fila, texto uppercase)
+- [x] `Combobox` — select con búsqueda, portal para dropdown, filtro por texto, teclado
 
 ---
 
-## Frontend — Layout
+## Frontend — Layout (src/components/layout/)
 
-- [x] `Sidebar` con navegación completa y estado activo
-- [x] `Layout` con sidebar + área de contenido con scroll
-- [ ] Topbar / header con nombre de empresa desde settings
-- [ ] Breadcrumbs
-- [ ] Modo responsive / tablet (estructura preparada, no implementado)
+- [x] `Sidebar` con navegación, estado activo, selector de bodega, cerrar sesión
+- [x] `AppProviders` — SessionProvider + WarehouseProvider
+- [x] `WarehouseProvider` — bodega activa persistida en cookie
+- [x] Layout con sidebar + área de contenido con scroll
 
 ---
 
 ## Frontend — Páginas
 
-### Dashboard
-- [x] Métricas: total productos, stock bajo, stock crítico, con alertas
-- [x] Tabla de alertas con StockStatusBadge
-- [x] Tabla de últimas entradas
-- [x] Tabla de últimas salidas
-- [ ] Gráfico de tendencia de movimientos (barras o línea)
-- [ ] Indicador de última actualización
+### Stock actual (`/`)
+- [x] Cards de resumen clickeables (filtran por estado)
+- [x] Tabla con diferencia vs mínimo coloreada
+- [x] Filtros: búsqueda por nombre + categoría
+- [x] Columna Tipo eliminada (solo Producto, Stock, Mínimo, Diferencia, Estado)
 
-### Productos
-- [x] Lista con búsqueda y filtro por categoría
-- [x] Filtro "mostrar inactivos"
-- [x] Tabla con stock actual, mínimo y estado visual
-- [x] Modal crear producto (todos los campos)
-- [x] Modal editar producto
-- [x] Desactivar producto (con confirmación)
-- [ ] Vista de historial de movimientos por producto
-- [ ] Activar producto desactivado
-- [ ] Importar productos desde CSV
+### Resumen / Dashboard (`/resumen`)
+- [x] Métricas: total, normal, bajo, crítico
+- [x] Tabla de alertas con badge
+- [x] Últimas entradas y salidas del mes
 
-### Entradas
-- [x] Lista con filtros de fecha
-- [x] Modal registrar entrada con múltiples productos
-- [x] Auto-fill de unidad al seleccionar producto
-- [x] Modal detalle de entrada
-- [ ] Proveedor desde selector (actualmente campo libre)
-- [ ] Anular entrada
+### Productos (`/productos`)
+- [x] Lista con búsqueda, filtro categoría, mostrar inactivos
+- [x] Modal crear / editar producto
+- [x] Desactivar producto
 
-### Salidas
+### Entradas (`/entradas`)
+- [x] Lista con filtros: fecha desde/hasta + búsqueda por folio
+- [x] Modal registrar / editar entrada (size xl)
+  - Combobox con búsqueda para selección de producto
+  - IVA por línea (activo por defecto), columna Vr. IVA calculada en tiempo real
+  - Orden de columnas: Producto → Cantidad → Unidad → IVA → %IVA → Vr.IVA → Total línea
+  - Folio obligatorio (validación frontend)
+  - Confirmación antes de guardar (modal custom)
+  - Aviso al cerrar si hay datos sin guardar
+- [x] Modal detalle con items, totales e historial de ediciones
+- [x] Auditoría: cada edición graba en `audit_log`
+
+### Salidas (`/salidas`)
 - [x] Lista con filtros de fecha
 - [x] Modal registrar salida con múltiples productos
-- [x] Muestra stock disponible al seleccionar producto
-- [x] Validación de stock insuficiente (en backend)
-- [x] Modal detalle de salida
-- [ ] Anular salida
+- [x] Stock disponible visible al seleccionar producto
+- [x] Validación de stock insuficiente (backend)
+- [x] Modal detalle
 
-### Stock actual
-- [x] Cards de resumen clickeables (filtran la tabla)
-- [x] Tabla completa con diferencia vs mínimo coloreada
-- [x] Filtro por estado (todos / normal / bajo / crítico)
-- [x] Búsqueda por nombre / categoría
-- [ ] Exportar vista actual
-
-### Ajustes de inventario
+### Ajustes (`/ajustes`)
 - [x] Lista con filtros de fecha
-- [x] Modal con comparador visual (sistema → físico → diferencia)
-- [x] Auto-fill del stock actual al seleccionar producto
-- [x] Diferencia con color (verde positivo / rojo negativo)
-- [ ] Vista de historial de ajustes por producto
+- [x] Modal con comparador visual sistema → físico → diferencia coloreada
 
-### Inventario inicial
-- [ ] Página/modal dedicado para cargar stock inicial de todos los productos de una vez
-  (actualmente solo existe a nivel de service/IPC, sin UI)
+### Reportes (`/reportes`)
+- [x] Stock actual
+- [x] Productos bajo mínimo
+- [x] Entradas por fecha
+- [x] Salidas por fecha
+- [x] Ajustes por fecha
+- [x] Historial de movimientos
+- [x] **Ediciones de facturas** — constancia de todas las ediciones con folio, fecha, proveedor, usuario
 
-### Reportes
-- [x] Selector visual de tipo de reporte
-- [x] Filtros de fecha para reportes que lo necesitan
-- [x] Reporte: stock actual
-- [x] Reporte: productos bajo mínimo
-- [x] Reporte: entradas por fecha
-- [x] Reporte: salidas por fecha
-- [x] Reporte: ajustes por fecha
-- [x] Reporte: historial de movimientos
-- [ ] Exportar a Excel
-- [ ] Exportar a PDF
-- [ ] Reporte de productos por categoría
-- [ ] Gráficos visuales en reportes
-
-### Configuración
-- [x] Nombre de empresa (guardado en settings)
-- [x] Información del sistema (versión, DB, modo)
-- [ ] Gestión de proveedores desde UI
-- [ ] Gestión de categorías personalizadas
-- [ ] Backup / exportar base de datos
-- [ ] Restaurar desde backup
+### Configuración (`/configuracion`)
+- [x] Layout: Usuarios arriba (ancho completo), Empresa + Acerca del sistema abajo en dos columnas
+- [x] Nombre de empresa + IVA por defecto
+- [x] Gestión de usuarios: crear, editar, activar/desactivar (solo admin)
+- [x] Acerca del sistema: versión, DB, usuario actual
 
 ---
 
-## Autenticación y usuarios (v2)
+## Pendiente / roadmap
 
-- [ ] Login (usuario + contraseña)
-- [ ] Tipos de usuario (admin / operador / solo lectura — por definir con cliente)
-- [ ] División de dos bodegas
-- [ ] Control de acceso por bodega/usuario
-
----
-
-## Migración a web (siguiente gran paso)
-
-- [ ] Decidir stack backend (candidatos: Next.js fullstack, Express + React, Hono + React)
-- [ ] Decidir base de datos cloud (candidatos: Turso, Supabase, PlanetScale/Neon)
-- [ ] Migrar schema SQL a nuevo ORM/driver (Drizzle, Prisma, o nativo)
-- [ ] Crear API endpoints / server actions equivalentes a los services actuales
-- [ ] Reemplazar `window.electronAPI` → `fetch` / SDK del backend
-- [ ] Cambiar `HashRouter` → `BrowserRouter`
-- [ ] Deploy del frontend
-- [ ] Deploy del backend
-- [ ] Configurar autenticación (JWT / NextAuth / Lucia)
-- [ ] Eliminar código Electron (src/main/, preload, electron deps)
+- [ ] Anulación de entradas y salidas (campo `status` listo, lógica pendiente)
+- [ ] Exportación PDF / Excel
+- [ ] Inventario inicial desde UI (service listo, sin página dedicada)
+- [ ] Vista de historial de movimientos por producto individual
+- [ ] Paginación para tablas largas
+- [ ] Modo responsive / tablet

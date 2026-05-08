@@ -1,0 +1,60 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  padding-right: 28px;
+  cursor: text;
+}
+
+.arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 11px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* El dropdown se posiciona via inline style (portal con position:fixed) */
+.dropdown {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.option {
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 80ms ease;
+}
+
+.option.highlighted {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary);
+}
+
+.option.selected {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.option.highlighted.selected {
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
