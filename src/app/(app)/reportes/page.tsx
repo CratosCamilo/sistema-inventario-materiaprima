@@ -6,7 +6,7 @@ import { StockStatusBadge } from '@/components/ui/Badge'
 import { Table } from '@/components/ui/Table'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi, entriesApi, exitsApi, adjustmentsApi, movementsApi, auditApi } from '@/lib/api/client'
-import { formatDate, formatNumber, formatCurrency, getStockStatus, DESTINATION_LABELS, MOVEMENT_TYPE_LABELS } from '@/utils/formatters'
+import { formatDate, formatNumber, formatCurrency, getStockStatus, DESTINATION_LABELS, MOVEMENT_TYPE_LABELS, pluralizeUnit } from '@/utils/formatters'
 import { exportExcel } from '@/utils/exportExcel'
 import { exportPdf } from '@/utils/exportPdf'
 import type { Product, PurchaseEntry, Exit, StockAdjustment, InventoryMovement, AuditLogEntry } from '@/types'
@@ -177,13 +177,13 @@ export default function ReportesPage() {
       case 'low_stock': {
         const rows = (data as Product[]).map(p => [
           p.name,
-          p.category === 'Produccion' ? 'Producción' : 'Empaques',
-          `${p.stock_current} ${p.visual_unit}`,
-          `${p.stock_minimum} ${p.visual_unit}`,
+          formatNumber(p.stock_current),
+          pluralizeUnit(p.visual_unit, p.stock_current),
+          `${formatNumber(p.stock_minimum)} ${p.visual_unit}`,
           getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
             : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
         ])
-        exportPdf(label, subtitle, ['Producto', 'Categoría', 'Stock actual', 'Mínimo', 'Estado'], rows)
+        exportPdf(label, subtitle, ['Producto', 'Stock actual', 'Presentación', 'Mínimo', 'Estado'], rows)
         break
       }
       case 'entries': {
