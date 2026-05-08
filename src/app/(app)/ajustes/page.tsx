@@ -105,7 +105,7 @@ export default function AjustesPage() {
           data={adjustments}
           rowKey={r => r.id}
           emptyText="Sin ajustes registrados"
-          pageSize={25}
+          pageSize={15}
         />
       </Card>
 

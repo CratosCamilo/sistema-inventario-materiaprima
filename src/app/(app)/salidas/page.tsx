@@ -160,7 +160,7 @@ export default function SalidasPage() {
           emptyText="Sin salidas registradas"
           onRowClick={openDetail}
           rowClassName={r => r.status === 'cancelled' ? styles.cancelled : ''}
-          pageSize={25}
+          pageSize={15}
         />
       </Card>
 

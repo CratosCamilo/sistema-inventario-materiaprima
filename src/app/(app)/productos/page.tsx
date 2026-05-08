@@ -124,7 +124,7 @@ export default function ProductosPage() {
           data={filtered}
           rowKey={r => r.id}
           emptyText="No se encontraron productos"
-          pageSize={25}
+          pageSize={15}
         />
       </Card>
 
