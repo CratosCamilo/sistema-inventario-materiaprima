@@ -8,6 +8,7 @@ import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi, entriesApi, exitsApi, adjustmentsApi, movementsApi, auditApi } from '@/lib/api/client'
 import { formatDate, formatNumber, formatCurrency, getStockStatus, DESTINATION_LABELS, MOVEMENT_TYPE_LABELS } from '@/utils/formatters'
 import { exportExcel } from '@/utils/exportExcel'
+import { exportPdf } from '@/utils/exportPdf'
 import type { Product, PurchaseEntry, Exit, StockAdjustment, InventoryMovement, AuditLogEntry } from '@/types'
 import styles from './reportes.module.css'
 
@@ -165,6 +166,74 @@ export default function ReportesPage() {
     }
   }
 
+  function handleExportPdf() {
+    if (!activeType || data.length === 0) return
+    const today = new Date().toISOString().slice(0, 10)
+    const label = REPORT_OPTIONS.find(o => o.value === activeType)?.label ?? ''
+    const subtitle = `${warehouse.name} — ${today}`
+
+    switch (activeType) {
+      case 'stock':
+      case 'low_stock': {
+        const rows = (data as Product[]).map(p => [
+          p.name,
+          p.category === 'Produccion' ? 'Producción' : 'Empaques',
+          `${p.stock_current} ${p.visual_unit}`,
+          `${p.stock_minimum} ${p.visual_unit}`,
+          getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
+            : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
+        ])
+        exportPdf(label, subtitle, ['Producto', 'Categoría', 'Stock actual', 'Mínimo', 'Estado'], rows)
+        break
+      }
+      case 'entries': {
+        const rows = (data as PurchaseEntry[]).map(e => [
+          formatDate(e.date), e.invoice_number ?? '', e.supplier_name ?? '',
+          e.responsible ?? '', e.total > 0 ? `$${formatCurrency(e.total)}` : '',
+        ])
+        exportPdf(label, subtitle, ['Fecha', 'Folio', 'Proveedor', 'Responsable', 'Total'], rows)
+        break
+      }
+      case 'exits': {
+        const rows = (data as Exit[]).map(e => [
+          formatDate(e.date), DESTINATION_LABELS[e.destination] ?? e.destination,
+          e.responsible ?? '', e.notes ?? '',
+        ])
+        exportPdf(label, subtitle, ['Fecha', 'Destino', 'Responsable', 'Observaciones'], rows)
+        break
+      }
+      case 'adjustments': {
+        const rows = (data as StockAdjustment[]).map(a => [
+          formatDate(a.date), a.product_name ?? '', a.stock_system,
+          a.stock_physical, a.difference, a.reason ?? '',
+        ])
+        exportPdf(label, subtitle, ['Fecha', 'Producto', 'Stock sistema', 'Stock físico', 'Diferencia', 'Motivo'], rows)
+        break
+      }
+      case 'movements': {
+        const rows = (data as InventoryMovement[]).map(m => [
+          formatDate(m.date), m.product_name ?? '',
+          MOVEMENT_TYPE_LABELS[m.type] ?? m.type,
+          m.direction === 'in' ? 'Entrada' : m.direction === 'out' ? 'Salida' : 'Ajuste',
+          `${m.quantity} ${m.unit}`, m.notes ?? '',
+        ])
+        exportPdf(label, subtitle, ['Fecha', 'Producto', 'Tipo', 'Dirección', 'Cantidad', 'Notas'], rows)
+        break
+      }
+      case 'audit': {
+        const rows = (data as AuditLogEntry[]).map(a => [
+          formatDate(a.created_at.slice(0, 10)), a.invoice_number ?? '',
+          a.entry_date ? formatDate(a.entry_date) : '',
+          a.supplier_name ?? '',
+          a.action === 'edit' ? 'Editada' : 'Anulada',
+          a.user_name,
+        ])
+        exportPdf(label, subtitle, ['Fecha edición', 'Folio', 'Fecha factura', 'Proveedor', 'Acción', 'Editado por'], rows)
+        break
+      }
+    }
+  }
+
   const needsDates      = ['entries', 'exits', 'adjustments', 'movements', 'audit'].includes(reportType)
   const hasExtraFilters = true
 
@@ -275,7 +344,10 @@ export default function ReportesPage() {
             <span className={styles.resultCount}>{data.length} registro(s)</span>
           )}
           {activeType && !loading && data.length > 0 && (
-            <Button variant="secondary" size="sm" onClick={handleExport}>↓ Exportar Excel</Button>
+            <>
+              <Button variant="secondary" size="sm" onClick={handleExport}>↓ Excel</Button>
+              <Button variant="secondary" size="sm" onClick={handleExportPdf}>↓ PDF</Button>
+            </>
           )}
         </div>
       </Card>
