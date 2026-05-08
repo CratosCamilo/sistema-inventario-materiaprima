@@ -166,7 +166,7 @@ export default function ReportesPage() {
     }
   }
 
-  function handleExportPdf() {
+  async function handleExportPdf() {
     if (!activeType || data.length === 0) return
     const today = new Date().toISOString().slice(0, 10)
     const label = REPORT_OPTIONS.find(o => o.value === activeType)?.label ?? ''
@@ -183,7 +183,7 @@ export default function ReportesPage() {
           getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
             : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
         ])
-        exportPdf(label, subtitle, ['Producto', 'Stock actual', 'Presentación', 'Mínimo', 'Estado'], rows)
+        await exportPdf(label, subtitle, ['Producto', 'Stock actual', 'Presentación', 'Mínimo', 'Estado'], rows, `${activeType}_${today}.pdf`)
         break
       }
       case 'entries': {
@@ -191,7 +191,7 @@ export default function ReportesPage() {
           formatDate(e.date), e.invoice_number ?? '', e.supplier_name ?? '',
           e.responsible ?? '', e.total > 0 ? `$${formatCurrency(e.total)}` : '',
         ])
-        exportPdf(label, subtitle, ['Fecha', 'Folio', 'Proveedor', 'Responsable', 'Total'], rows)
+        await exportPdf(label, subtitle, ['Fecha', 'Folio', 'Proveedor', 'Responsable', 'Total'], rows, `entradas_${today}.pdf`)
         break
       }
       case 'exits': {
@@ -199,7 +199,7 @@ export default function ReportesPage() {
           formatDate(e.date), DESTINATION_LABELS[e.destination] ?? e.destination,
           e.responsible ?? '', e.notes ?? '',
         ])
-        exportPdf(label, subtitle, ['Fecha', 'Destino', 'Responsable', 'Observaciones'], rows)
+        await exportPdf(label, subtitle, ['Fecha', 'Destino', 'Responsable', 'Observaciones'], rows, `salidas_${today}.pdf`)
         break
       }
       case 'adjustments': {
@@ -207,7 +207,7 @@ export default function ReportesPage() {
           formatDate(a.date), a.product_name ?? '', a.stock_system,
           a.stock_physical, a.difference, a.reason ?? '',
         ])
-        exportPdf(label, subtitle, ['Fecha', 'Producto', 'Stock sistema', 'Stock físico', 'Diferencia', 'Motivo'], rows)
+        await exportPdf(label, subtitle, ['Fecha', 'Producto', 'Stock sistema', 'Stock físico', 'Diferencia', 'Motivo'], rows, `ajustes_${today}.pdf`)
         break
       }
       case 'movements': {
@@ -217,7 +217,7 @@ export default function ReportesPage() {
           m.direction === 'in' ? 'Entrada' : m.direction === 'out' ? 'Salida' : 'Ajuste',
           `${m.quantity} ${m.unit}`, m.notes ?? '',
         ])
-        exportPdf(label, subtitle, ['Fecha', 'Producto', 'Tipo', 'Dirección', 'Cantidad', 'Notas'], rows)
+        await exportPdf(label, subtitle, ['Fecha', 'Producto', 'Tipo', 'Dirección', 'Cantidad', 'Notas'], rows, `movimientos_${today}.pdf`)
         break
       }
       case 'audit': {
@@ -228,7 +228,7 @@ export default function ReportesPage() {
           a.action === 'edit' ? 'Editada' : 'Anulada',
           a.user_name,
         ])
-        exportPdf(label, subtitle, ['Fecha edición', 'Folio', 'Fecha factura', 'Proveedor', 'Acción', 'Editado por'], rows)
+        await exportPdf(label, subtitle, ['Fecha edición', 'Folio', 'Fecha factura', 'Proveedor', 'Acción', 'Editado por'], rows, `ediciones_facturas_${today}.pdf`)
         break
       }
     }
