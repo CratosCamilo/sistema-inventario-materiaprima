@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useWarehouse } from '@/lib/warehouse-context'
@@ -31,7 +30,8 @@ export function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <Image src="/logonb.png" alt="Logo" width={36} height={36} className={styles.brandLogo} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logonb.png" alt="Logo" className={styles.brandLogo} />
         <div>
           <div className={styles.brandName}>Inventario</div>
           <div className={styles.brandSub}>Materia Prima</div>
