@@ -11,6 +11,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Inventario Materia Prima',
   description: 'Sistema de inventario de materia prima',
+  icons: {
+    icon: '/logonb.ico',
+    apple: '/logonb.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
