@@ -3,10 +3,12 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { Card } from '@/components/ui/Card'
 import { StockStatusBadge } from '@/components/ui/Badge'
 import { Table } from '@/components/ui/Table'
+import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 import { useWarehouse } from '@/lib/warehouse-context'
-import { productsApi } from '@/lib/api/client'
-import { formatNumber, getStockStatus } from '@/utils/formatters'
-import type { Product, ProductCategory } from '@/types'
+import { productsApi, movementsApi } from '@/lib/api/client'
+import { formatNumber, formatDate, getStockStatus, MOVEMENT_TYPE_LABELS } from '@/utils/formatters'
+import type { Product, ProductCategory, InventoryMovement } from '@/types'
 import styles from './stock.module.css'
 
 type FilterStatus   = 'all' | 'normal' | 'low' | 'critical'
@@ -19,6 +21,9 @@ export default function StockPage() {
   const [filter,   setFilter]   = useState<FilterStatus>('all')
   const [category, setCategory] = useState<FilterCategory>('')
   const [loading,  setLoading]  = useState(true)
+  const [historyProduct,   setHistoryProduct]   = useState<Product | null>(null)
+  const [productMovements, setProductMovements] = useState<InventoryMovement[]>([])
+  const [historyLoading,   setHistoryLoading]   = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -28,6 +33,18 @@ export default function StockPage() {
   }, [warehouse.id])
 
   useEffect(() => { load() }, [load])
+
+  async function openHistory(product: Product) {
+    setHistoryProduct(product)
+    setHistoryLoading(true)
+    setProductMovements([])
+    try {
+      const data = await movementsApi.list(warehouse.id, { product_id: product.id })
+      setProductMovements(data)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
 
   const enriched = products
     .map(p => ({ ...p, stock_status: getStockStatus(p.stock_current, p.stock_minimum) }))
@@ -109,12 +126,58 @@ export default function StockPage() {
               }},
             { key: 'stock_status', header: 'Estado',
               render: r => <StockStatusBadge status={r.stock_status} /> },
+            { key: 'history', header: '',
+              render: r => (
+                <button
+                  className={styles.historyBtn}
+                  onClick={e => { e.stopPropagation(); openHistory(r) }}
+                  title="Ver historial de movimientos"
+                >
+                  Historial
+                </button>
+              )},
           ]}
           data={loading ? [] : filtered}
           rowKey={r => r.id}
           emptyText={loading ? 'Cargando...' : 'No se encontraron productos'}
         />
       </Card>
+
+      <Modal
+        open={!!historyProduct}
+        title={historyProduct ? `Historial — ${historyProduct.name}` : ''}
+        onClose={() => setHistoryProduct(null)}
+        size="lg"
+        footer={<Button variant="ghost" onClick={() => setHistoryProduct(null)}>Cerrar</Button>}
+      >
+        {historyProduct && (
+          <div>
+            {historyLoading && <p style={{color:'var(--text-muted)',textAlign:'center',padding:'24px 0'}}>Cargando...</p>}
+            {!historyLoading && productMovements.length === 0 && (
+              <p style={{color:'var(--text-muted)',textAlign:'center',padding:'24px 0'}}>Sin movimientos registrados para este producto.</p>
+            )}
+            {!historyLoading && productMovements.length > 0 && (
+              <Table<InventoryMovement>
+                columns={[
+                  { key: 'date',      header: 'Fecha',    render: r => formatDate(r.date) },
+                  { key: 'type',      header: 'Tipo',     render: r => MOVEMENT_TYPE_LABELS[r.type] ?? r.type },
+                  { key: 'quantity',  header: 'Cantidad', align: 'right',
+                    render: r => (
+                      <span style={{color: r.direction === 'in' ? 'var(--success)' : r.direction === 'out' ? 'var(--danger)' : 'var(--warning)', fontWeight: 600}}>
+                        {r.direction === 'out' ? '−' : '+'}{formatNumber(r.quantity)} {r.unit}
+                      </span>
+                    )},
+                  { key: 'notes',     header: 'Notas',    render: r => r.notes ?? '—' },
+                  { key: 'created_by_name', header: 'Usuario', render: r => r.created_by_name ?? '—' },
+                ]}
+                data={productMovements}
+                rowKey={r => r.id}
+                emptyText="Sin movimientos"
+              />
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
