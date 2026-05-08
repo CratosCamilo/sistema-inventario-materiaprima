@@ -7,7 +7,7 @@ import { Table } from '@/components/ui/Table'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi, entriesApi, exitsApi, adjustmentsApi, movementsApi, auditApi } from '@/lib/api/client'
 import { formatDate, formatNumber, formatCurrency, getStockStatus, DESTINATION_LABELS, MOVEMENT_TYPE_LABELS } from '@/utils/formatters'
-import { exportCsv } from '@/utils/exportCsv'
+import { exportExcel } from '@/utils/exportExcel'
 import type { Product, PurchaseEntry, Exit, StockAdjustment, InventoryMovement, AuditLogEntry } from '@/types'
 import styles from './reportes.module.css'
 
@@ -114,7 +114,7 @@ export default function ReportesPage() {
           getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
             : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
         ])
-        exportCsv(`stock_${today}.csv`, ['Producto', 'Categoría', 'Stock actual', 'Unidad', 'Mínimo', 'Estado'], rows)
+        exportExcel(`stock_${today}.xlsx`, ['Producto', 'Categoría', 'Stock actual', 'Unidad', 'Mínimo', 'Estado'], rows)
         break
       }
       case 'entries': {
@@ -122,7 +122,7 @@ export default function ReportesPage() {
           formatDate(e.date), e.invoice_number ?? '', e.supplier_name ?? '',
           e.responsible ?? '', e.total > 0 ? e.total : '',
         ])
-        exportCsv(`entradas_${today}.csv`, ['Fecha', 'Folio', 'Proveedor', 'Responsable', 'Total'], rows)
+        exportExcel(`entradas_${today}.xlsx`, ['Fecha', 'Folio', 'Proveedor', 'Responsable', 'Total'], rows)
         break
       }
       case 'exits': {
@@ -130,7 +130,7 @@ export default function ReportesPage() {
           formatDate(e.date), DESTINATION_LABELS[e.destination] ?? e.destination,
           e.responsible ?? '', e.notes ?? '',
         ])
-        exportCsv(`salidas_${today}.csv`, ['Fecha', 'Destino', 'Responsable', 'Observaciones'], rows)
+        exportExcel(`salidas_${today}.xlsx`, ['Fecha', 'Destino', 'Responsable', 'Observaciones'], rows)
         break
       }
       case 'adjustments': {
@@ -138,7 +138,7 @@ export default function ReportesPage() {
           formatDate(a.date), a.product_name ?? '', a.stock_system,
           a.stock_physical, a.difference, a.reason ?? '',
         ])
-        exportCsv(`ajustes_${today}.csv`, ['Fecha', 'Producto', 'Stock sistema', 'Stock físico', 'Diferencia', 'Motivo'], rows)
+        exportExcel(`ajustes_${today}.xlsx`, ['Fecha', 'Producto', 'Stock sistema', 'Stock físico', 'Diferencia', 'Motivo'], rows)
         break
       }
       case 'movements': {
@@ -148,7 +148,7 @@ export default function ReportesPage() {
           m.direction === 'in' ? 'Entrada' : m.direction === 'out' ? 'Salida' : 'Ajuste',
           m.quantity, m.unit, m.notes ?? '',
         ])
-        exportCsv(`movimientos_${today}.csv`, ['Fecha', 'Producto', 'Tipo', 'Dirección', 'Cantidad', 'Unidad', 'Notas'], rows)
+        exportExcel(`movimientos_${today}.xlsx`, ['Fecha', 'Producto', 'Tipo', 'Dirección', 'Cantidad', 'Unidad', 'Notas'], rows)
         break
       }
       case 'audit': {
@@ -159,7 +159,7 @@ export default function ReportesPage() {
           a.action === 'edit' ? 'Editada' : 'Anulada',
           a.user_name,
         ])
-        exportCsv(`ediciones_facturas_${today}.csv`, ['Fecha edición', 'Folio', 'Fecha factura', 'Proveedor', 'Acción', 'Editado por'], rows)
+        exportExcel(`ediciones_facturas_${today}.xlsx`, ['Fecha edición', 'Folio', 'Fecha factura', 'Proveedor', 'Acción', 'Editado por'], rows)
         break
       }
     }
