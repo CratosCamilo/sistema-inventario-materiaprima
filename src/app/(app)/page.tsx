@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi, movementsApi } from '@/lib/api/client'
-import { formatNumber, formatDate, getStockStatus, MOVEMENT_TYPE_LABELS } from '@/utils/formatters'
+import { formatNumber, formatDate, getStockStatus, MOVEMENT_TYPE_LABELS, pluralizeUnit } from '@/utils/formatters'
 import type { Product, ProductCategory, InventoryMovement } from '@/types'
 import styles from './stock.module.css'
 
@@ -107,10 +107,22 @@ export default function StockPage() {
         <Table
           columns={[
             { key: 'name',     header: 'Producto', render: r => <span style={{color:'var(--text-primary)'}}>{r.name}</span> },
-            { key: 'stock_current', header: 'Stock actual', align: 'right',
+            { key: 'stock_current', header: 'Stock', align: 'right', width: '88px',
               render: r => (
-                <span style={{ color: r.stock_status === 'critical' ? 'var(--danger)' : r.stock_status === 'low' ? 'var(--warning)' : 'var(--text-primary)', fontWeight: 600 }}>
-                  {formatNumber(r.stock_current)} {r.visual_unit}
+                <span style={{
+                  color: r.stock_status === 'critical' ? 'var(--danger)' : r.stock_status === 'low' ? 'var(--warning)' : 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '1.15rem',
+                  lineHeight: 1,
+                  display: 'block',
+                }}>
+                  {formatNumber(r.stock_current)}
+                </span>
+              )},
+            { key: 'visual_unit', header: 'Presentación', width: '110px',
+              render: r => (
+                <span style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>
+                  {pluralizeUnit(r.visual_unit, r.stock_current)}
                 </span>
               )},
             { key: 'stock_minimum', header: 'Mínimo', align: 'right',

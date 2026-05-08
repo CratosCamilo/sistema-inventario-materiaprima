@@ -40,3 +40,43 @@ export const CATEGORY_LABELS: Record<string, string> = {
   Produccion: 'Producción',
   Empaques:   'Empaques',
 }
+
+// Mapa explícito de unidades → plural en español
+const UNIT_PLURALS: Record<string, string> = {
+  'unidad':  'unidades',
+  'bulto':   'bultos',
+  'caja':    'cajas',
+  'paquete': 'paquetes',
+  'rollo':   'rollos',
+  'cartón':  'cartones',
+  'carton':  'cartones',
+  'bolsa':   'bolsas',
+  'saco':    'sacos',
+  'tarro':   'tarros',
+  'lata':    'latas',
+  'botella': 'botellas',
+  'galón':   'galones',
+  'galon':   'galones',
+  'sobre':   'sobres',
+  'tela':    'telas',
+  'costal':  'costales',
+  'frasco':  'frascos',
+  'balde':   'baldes',
+  'caneca':  'canecas',
+}
+
+export function pluralizeUnit(unit: string, qty: number): string {
+  const key = unit.toLowerCase().trim()
+
+  // qty ≤ 1: devuelve tal cual (singular o como venga de la BD)
+  if (qty <= 1) return unit
+
+  if (UNIT_PLURALS[key]) return UNIT_PLURALS[key]
+
+  // Si ya termina en 's', probablemente ya es plural (gramos, litros, etc.)
+  if (key.endsWith('s')) return unit
+
+  // Fallback español: vocal → +s, consonante → +es
+  const vowels = 'aeiouáéíóúü'
+  return vowels.includes(key.slice(-1)) ? unit + 's' : unit + 'es'
+}
