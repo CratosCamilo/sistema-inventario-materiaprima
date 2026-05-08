@@ -8,6 +8,8 @@ import {
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm'
 import type { CreateExitInput } from '@/types'
 
+
+
 export async function listExits(warehouseId: number, filters?: { date_from?: string; date_to?: string }) {
   const conditions = [eq(exits.warehouse_id, warehouseId)]
   if (filters?.date_from) conditions.push(gte(exits.date, filters.date_from))
@@ -107,4 +109,24 @@ export async function createExit(
   }
 
   return getExit(exit.id)
+}
+
+export async function cancelExit(id: number) {
+  const existingExit = await getExit(id)
+  if (!existingExit) throw new Error(`Salida ${id} no encontrada`)
+  if (existingExit.status === 'cancelled') throw new Error('La salida ya está anulada')
+
+  for (const item of existingExit.items ?? []) {
+    await db.update(products).set({
+      stock_current: sql`${products.stock_current} + ${item.quantity}`,
+      updated_at:    sql`(datetime('now'))`,
+    }).where(eq(products.id, item.product_id))
+  }
+
+  await db.update(exits).set({
+    status:     'cancelled',
+    updated_at: sql`(datetime('now'))`,
+  }).where(eq(exits.id, id))
+
+  return { ok: true }
 }

@@ -17,9 +17,10 @@ interface TableProps<T> {
   rowKey: (row: T) => string | number
   emptyText?: string
   onRowClick?: (row: T) => void
+  rowClassName?: (row: T) => string
 }
 
-export function Table<T>({ columns, data, rowKey, emptyText = 'Sin datos', onRowClick }: TableProps<T>) {
+export function Table<T>({ columns, data, rowKey, emptyText = 'Sin datos', onRowClick, rowClassName }: TableProps<T>) {
   return (
     <div className={styles.wrapper}>
       <table className={styles.table}>
@@ -45,7 +46,7 @@ export function Table<T>({ columns, data, rowKey, emptyText = 'Sin datos', onRow
             data.map(row => (
               <tr
                 key={rowKey(row)}
-                className={`${styles.tr} ${onRowClick ? styles.clickable : ''}`}
+                className={`${styles.tr} ${onRowClick ? styles.clickable : ''} ${rowClassName ? rowClassName(row) : ''}`}
                 onClick={() => onRowClick?.(row)}
               >
                 {columns.map(col => (

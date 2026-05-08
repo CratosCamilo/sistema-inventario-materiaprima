@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Table } from '@/components/ui/Table'
 import { Modal } from '@/components/ui/Modal'
 import { useWarehouse } from '@/lib/warehouse-context'
+import { useSession } from '@/lib/session-context'
 import { exitsApi, productsApi } from '@/lib/api/client'
 import { formatDate, formatNumber, DESTINATION_LABELS } from '@/utils/formatters'
 import type { Exit, Product, CreateExitItemInput, ExitDestination } from '@/types'
@@ -21,6 +22,8 @@ const DESTINATIONS: { value: ExitDestination; label: string }[] = [
 
 export default function SalidasPage() {
   const { warehouse } = useWarehouse()
+  const session       = useSession()
+  const isAdmin       = session.role === 'admin'
   const [exits, setExits]       = useState<Exit[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [dateFrom, setDateFrom] = useState('')
@@ -31,6 +34,23 @@ export default function SalidasPage() {
   const [error, setError]   = useState('')
   const [items, setItems]   = useState<ItemRow[]>([])
   const [nextKey, setNextKey] = useState(0)
+  const [confirmConfig, setConfirmConfig] = useState<{
+    message: string
+    confirmLabel?: string
+    onConfirm: () => void
+    onCancel: () => void
+  } | null>(null)
+
+  function showConfirm(message: string, confirmLabel = 'Confirmar'): Promise<boolean> {
+    return new Promise(resolve => {
+      setConfirmConfig({
+        message,
+        confirmLabel,
+        onConfirm: () => { setConfirmConfig(null); resolve(true) },
+        onCancel:  () => { setConfirmConfig(null); resolve(false) },
+      })
+    })
+  }
 
   const load = useCallback(() => {
     exitsApi.list(warehouse.id, { date_from: dateFrom || undefined, date_to: dateTo || undefined })
@@ -65,6 +85,21 @@ export default function SalidasPage() {
   async function openDetail(ex: Exit) {
     const full = await exitsApi.get(ex.id)
     setDetailExit(full)
+  }
+
+  async function handleCancel(ex: Exit) {
+    const ok = await showConfirm(
+      `¿Anular esta salida (${DESTINATION_LABELS[ex.destination] ?? ex.destination})? Esta acción devolverá el stock y no se puede deshacer.`,
+      'Sí, anular',
+    )
+    if (!ok) return
+    try {
+      await exitsApi.cancel(ex.id)
+      setDetailExit(null)
+      load()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al anular')
+    }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -115,11 +150,16 @@ export default function SalidasPage() {
             { key: 'destination', header: 'Destino',    render: r => DESTINATION_LABELS[r.destination] ?? r.destination },
             { key: 'responsible', header: 'Responsable', render: r => r.responsible ?? '—' },
             { key: 'notes',       header: 'Observaciones', render: r => r.notes ?? '—' },
+            { key: 'status',      header: 'Estado',
+              render: r => r.status === 'cancelled'
+                ? <span style={{color:'var(--danger)',fontWeight:600,fontSize:12}}>Anulada</span>
+                : <span style={{color:'var(--success)',fontSize:12}}>Activa</span> },
           ]}
           data={exits}
           rowKey={r => r.id}
           emptyText="Sin salidas registradas"
           onRowClick={openDetail}
+          rowClassName={r => r.status === 'cancelled' ? styles.cancelled : ''}
         />
       </Card>
 
@@ -192,10 +232,22 @@ export default function SalidasPage() {
       </Modal>
 
       <Modal open={!!detailExit} title="Detalle de salida" onClose={() => setDetailExit(null)} size="md"
-        footer={<Button variant="ghost" onClick={() => setDetailExit(null)}>Cerrar</Button>}
+        footer={
+          <>
+            {isAdmin && detailExit?.status === 'active' && (
+              <Button variant="danger" onClick={() => handleCancel(detailExit!)}>Anular</Button>
+            )}
+            <Button variant="ghost" onClick={() => setDetailExit(null)}>Cerrar</Button>
+          </>
+        }
       >
         {detailExit && (
           <div className={styles.detailBody}>
+            {detailExit.status === 'cancelled' && (
+              <div style={{background:'var(--danger-soft)',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',padding:'10px 14px',color:'var(--danger)',fontSize:13,fontWeight:600}}>
+                Salida anulada — el stock fue devuelto
+              </div>
+            )}
             <div className={styles.detailGrid}>
               <div><span className={styles.label}>Fecha</span><p>{formatDate(detailExit.date)}</p></div>
               <div><span className={styles.label}>Destino</span><p>{DESTINATION_LABELS[detailExit.destination] ?? detailExit.destination}</p></div>
@@ -211,6 +263,26 @@ export default function SalidasPage() {
             ))}
           </div>
         )}
+      </Modal>
+
+      {/* ── Modal confirmación ── */}
+      <Modal
+        open={!!confirmConfig}
+        title="Confirmar"
+        onClose={() => confirmConfig?.onCancel()}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => confirmConfig?.onCancel()}>Cancelar</Button>
+            <Button variant="danger" onClick={() => confirmConfig?.onConfirm()}>
+              {confirmConfig?.confirmLabel ?? 'Confirmar'}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          {confirmConfig?.message}
+        </p>
       </Modal>
     </div>
   )

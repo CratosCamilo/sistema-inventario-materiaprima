@@ -28,6 +28,7 @@ export default function EntradasPage() {
   const { warehouse } = useWarehouse()
   const session       = useSession()
   const canEdit       = session.role === 'admin' || session.role === 'operador'
+  const isAdmin       = session.role === 'admin'
 
   const [entries, setEntries] = useState<PurchaseEntry[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -182,6 +183,21 @@ export default function EntradasPage() {
     setDetailEntry(full)
   }
 
+  async function handleCancel(entry: EntryWithHistory) {
+    const ok = await showConfirm(
+      `¿Anular la entrada con folio "${entry.invoice_number ?? entry.id}"? Esta acción revertirá el stock y no se puede deshacer.`,
+      'Sí, anular',
+    )
+    if (!ok) return
+    try {
+      await entriesApi.cancel(entry.id)
+      setDetailEntry(null)
+      load()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al anular')
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
@@ -258,11 +274,16 @@ export default function EntradasPage() {
               render: r => r.total > 0 ? `$${formatCurrency(r.total)}` : '—' },
             { key: 'item_count',     header: 'Productos',  align: 'right',
               render: r => r.item_count ?? '—' },
+            { key: 'status',         header: 'Estado',
+              render: r => r.status === 'cancelled'
+                ? <span style={{color:'var(--danger)',fontWeight:600,fontSize:12}}>Anulada</span>
+                : <span style={{color:'var(--success)',fontSize:12}}>Activa</span> },
           ]}
           data={entries}
           rowKey={r => r.id}
           emptyText="Sin entradas registradas"
           onRowClick={openDetail}
+          rowClassName={r => r.status === 'cancelled' ? styles.cancelled : ''}
         />
       </Card>
 
@@ -404,6 +425,11 @@ export default function EntradasPage() {
         size="md"
         footer={
           <>
+            {isAdmin && detailEntry?.status === 'active' && (
+              <Button variant="danger" onClick={() => handleCancel(detailEntry!)}>
+                Anular
+              </Button>
+            )}
             {canEdit && detailEntry?.status === 'active' && (
               <Button onClick={() => { const e = detailEntry; setDetailEntry(null); openEdit(e!) }}>
                 Editar
@@ -415,6 +441,11 @@ export default function EntradasPage() {
       >
         {detailEntry && (
           <div className={styles.detailBody}>
+            {detailEntry.status === 'cancelled' && (
+              <div style={{background:'var(--danger-soft)',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',padding:'10px 14px',color:'var(--danger)',fontSize:13,fontWeight:600}}>
+                Entrada anulada — el stock fue revertido
+              </div>
+            )}
             <div className={styles.detailGrid}>
               <div><span className={styles.label}>Fecha</span><p>{formatDate(detailEntry.date)}</p></div>
               <div><span className={styles.label}>Folio</span><p>{detailEntry.invoice_number ?? '—'}</p></div>
@@ -461,7 +492,9 @@ export default function EntradasPage() {
                 </h4>
                 {detailEntry.history.map(h => (
                   <div key={h.id} className={styles.historyItem}>
-                    <span style={{fontWeight:600}}>{h.user_name}</span>
+                    <span style={{fontWeight:600}}>
+                      {h.action === 'cancel' ? '✕ Anulada' : 'Editada'} por {h.user_name}
+                    </span>
                     <span style={{color:'var(--text-muted)', fontSize:12}}>{formatDate(h.created_at.slice(0,10))}</span>
                   </div>
                 ))}

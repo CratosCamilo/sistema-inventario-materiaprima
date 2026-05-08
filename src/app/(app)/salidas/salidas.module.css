@@ -49,3 +49,5 @@
   padding: 10px 14px; background: var(--bg-primary);
   border-radius: var(--radius-sm); font-size: 14px;
 }
+
+.cancelled { opacity: 0.45; }

@@ -228,3 +228,32 @@ export async function editEntry(
 
   return getEntry(id)
 }
+
+export async function cancelEntry(id: number, userId: number, userName: string) {
+  const existingEntry = await getEntry(id)
+  if (!existingEntry) throw new Error(`Entrada ${id} no encontrada`)
+  if (existingEntry.status === 'cancelled') throw new Error('La entrada ya está anulada')
+
+  for (const item of existingEntry.items ?? []) {
+    await db.update(products).set({
+      stock_current: sql`${products.stock_current} - ${item.quantity}`,
+      updated_at:    sql`(datetime('now'))`,
+    }).where(eq(products.id, item.product_id))
+  }
+
+  await db.insert(audit_log).values({
+    entity_type: 'purchase_entry',
+    entity_id:   id,
+    action:      'cancel',
+    user_id:     userId,
+    user_name:   userName,
+    changes:     JSON.stringify({ status: { before: 'active', after: 'cancelled' } }),
+  })
+
+  await db.update(purchase_entries).set({
+    status:     'cancelled',
+    updated_at: sql`(datetime('now'))`,
+  }).where(eq(purchase_entries.id, id))
+
+  return { ok: true }
+}

@@ -103,3 +103,5 @@
   font-size: 13px;
 }
 .historyItem:last-child { border-bottom: none; }
+
+.cancelled { opacity: 0.45; }

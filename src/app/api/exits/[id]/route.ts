@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
-import { getExit } from '@/lib/services/exitService'
-import { db } from '@/lib/db'
-import { exits } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { getExit, cancelExit } from '@/lib/services/exitService'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession()
@@ -22,8 +19,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
   }
 
-  await db.update(exits)
-    .set({ status: 'cancelled' })
-    .where(eq(exits.id, Number(params.id)))
-  return NextResponse.json({ ok: true })
+  try {
+    await cancelExit(Number(params.id))
+    return NextResponse.json({ ok: true })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error'
+    return NextResponse.json({ error: msg }, { status: 422 })
+  }
 }
