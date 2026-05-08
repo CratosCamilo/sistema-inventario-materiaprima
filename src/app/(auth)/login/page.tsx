@@ -41,7 +41,8 @@ export default function LoginPage() {
     <div className={styles.page}>
       <div className={styles.box}>
         <div className={styles.logo}>
-          <span className={styles.logoIcon}>🏭</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logonb.png" alt="Logo" className={styles.logoImg} />
           <h1>Inventario</h1>
           <p>Materia Prima</p>
         </div>
