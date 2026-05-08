@@ -118,10 +118,21 @@ export async function exportPdf(
     pageW - margin, finalY + 6, { align: 'right' },
   )
 
-  // ── Abrir en nueva pestaña ──
+  // ── Descargar con nombre correcto y abrir en nueva pestaña ──
   doc.setProperties({ title: filename.replace('.pdf', '') })
   const blob = doc.output('blob')
   const url  = URL.createObjectURL(blob)
+
+  // Descarga directa (como Excel)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+
+  // También abre en nueva pestaña para visualizar
   window.open(url, '_blank')
+
   setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
