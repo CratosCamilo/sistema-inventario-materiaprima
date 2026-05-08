@@ -168,12 +168,20 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 - [x] Gestión de usuarios: crear, editar, activar/desactivar (solo admin)
 - [x] Acerca del sistema: versión, DB, usuario actual
 
+### Assets y branding
+- [x] `public/logonb.ico` — favicon de la empresa (declarado en `metadata.icons` del root layout)
+- [x] `public/logonb.png` — logo en la cabecera del sidebar (36×36, `<img>` nativo — no usar `next/image`)
+
+### Exportación
+- [x] Todos los reportes exportan `.xlsx` con fuente Trebuchet MS 12, separador de miles y cabecera con color teal
+- [x] Filtros específicos por tipo de reporte antes de generar
+
 ---
 
 ## Pendiente / roadmap
 
 - [ ] Anulación de entradas y salidas (campo `status` listo, lógica pendiente)
-- [ ] Exportación PDF / Excel
+- [ ] Exportación PDF
 - [ ] Inventario inicial desde UI (service listo, sin página dedicada)
 - [ ] Vista de historial de movimientos por producto individual
 - [ ] Paginación para tablas largas

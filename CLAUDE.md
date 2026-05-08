@@ -55,7 +55,7 @@ Ver [`PROGRESS.md`](./PROGRESS.md) para la checklist detallada.
 - Integración con DIAN
 - Costeo / recetas automáticas
 - Facturación / ventas
-- Exportación PDF/Excel
+- Exportación PDF (Excel .xlsx ya implementado)
 - Control de pan terminado (es otro sistema separado)
 
 **Roles:**
@@ -152,6 +152,10 @@ src/
     global.css
   types/index.ts                  # Todos los tipos TypeScript
   utils/formatters.ts             # formatDate, formatNumber, formatCurrency, es-CO
+  utils/exportExcel.ts            # Exportación .xlsx con estilos (xlsx-js-style)
+public/
+  logonb.ico                      # Favicon de la empresa
+  logonb.png                      # Logo para sidebar (fondo transparente)
 ```
 
 ---
@@ -211,6 +215,15 @@ npx tsc --noEmit               # Type-check
 # Primera vez / reset de BD:
 # Visitar http://localhost:3000/api/setup  (crea tablas + seed con admin y productos demo)
 ```
+
+---
+
+## Assets y branding
+
+- **Logos en `public/`:** `logonb.ico` (favicon) y `logonb.png` (logo sidebar, fondo transparente).
+- El favicon se declara en `src/app/layout.tsx` vía `metadata.icons`.
+- El logo del sidebar usa `<img>` nativo (NO `next/image`) — next/image falla con este PNG al intentar optimizarlo.
+- Si se reemplaza el logo, mantener los mismos nombres de archivo en `public/`.
 
 ---
 
