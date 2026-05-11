@@ -1,6 +1,6 @@
 # PROGRESS.md — Estado del proyecto
 
-Última actualización: 2026-05-08 (v2 completa + features adicionales)
+Última actualización: 2026-05-11
 
 ---
 
@@ -119,6 +119,8 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 - [x] Tabla con diferencia vs mínimo coloreada
 - [x] Filtros: búsqueda por nombre + categoría
 - [x] Columna Tipo eliminada (solo Producto, Stock, Mínimo, Diferencia, Estado)
+- [x] Botones **↓ Excel** y **↓ PDF conteo** en el encabezado — exportan la vista filtrada activa
+  - El PDF incluye columna "Stock real" vacía (cuadro con borde) para llenar a lápiz en conteo físico
 
 ### Resumen / Dashboard (`/resumen`)
 - [x] Métricas: total, normal, bajo, crítico
@@ -175,6 +177,9 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 ### Exportación
 - [x] Todos los reportes exportan `.xlsx` con fuente Trebuchet MS 12, separador de miles y cabecera con color teal
 - [x] Filtros específicos por tipo de reporte antes de generar
+- [x] Todos los PDFs en orientación **vertical (portrait A4)** — caben más filas por hoja
+- [x] PDF de stock (reportes + stock actual): columna **"Stock real"** con borde visible para conteo físico a mano
+  - Columnas: Producto | Presentación | Mínimo | Stock actual | Stock real
 
 ---
 

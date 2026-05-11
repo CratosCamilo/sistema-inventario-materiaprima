@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi, movementsApi } from '@/lib/api/client'
 import { formatNumber, formatDate, getStockStatus, MOVEMENT_TYPE_LABELS, pluralizeUnit } from '@/utils/formatters'
+import { exportExcel } from '@/utils/exportExcel'
+import { exportPdf } from '@/utils/exportPdf'
 import type { Product, ProductCategory, InventoryMovement } from '@/types'
 import styles from './stock.module.css'
 
@@ -64,6 +66,38 @@ export default function StockPage() {
   const totalLow      = enriched.filter(p => p.stock_status === 'low').length
   const totalCritical = enriched.filter(p => p.stock_status === 'critical').length
 
+  const today = new Date().toISOString().slice(0, 10)
+
+  function handleExportExcel() {
+    const rows = filtered.map(p => [
+      p.name,
+      pluralizeUnit(p.visual_unit, p.stock_current),
+      p.stock_minimum,
+      p.stock_current,
+      getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
+        : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
+    ])
+    exportExcel(`stock_${today}.xlsx`, ['Producto', 'Presentación', 'Mínimo', 'Stock actual', 'Estado'], rows)
+  }
+
+  async function handleExportPdf() {
+    const rows = filtered.map(p => [
+      p.name,
+      pluralizeUnit(p.visual_unit, p.stock_current),
+      `${formatNumber(p.stock_minimum)} ${p.visual_unit}`,
+      formatNumber(p.stock_current),
+      '',
+    ])
+    await exportPdf(
+      'Stock actual',
+      `${warehouse.name} — ${today}`,
+      ['Producto', 'Presentación', 'Mínimo', 'Stock actual', 'Stock real'],
+      rows,
+      `stock_${today}.pdf`,
+      { handwritingLastCol: true },
+    )
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -71,6 +105,12 @@ export default function StockPage() {
           <h1>Stock actual</h1>
           <p>Estado de inventario en tiempo real — {warehouse.name}</p>
         </div>
+        {!loading && filtered.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Button variant="secondary" size="sm" onClick={handleExportExcel}>↓ Excel</Button>
+            <Button variant="secondary" size="sm" onClick={handleExportPdf}>↓ PDF conteo</Button>
+          </div>
+        )}
       </div>
 
       <div className={styles.summary}>

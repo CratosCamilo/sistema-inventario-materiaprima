@@ -177,13 +177,18 @@ export default function ReportesPage() {
       case 'low_stock': {
         const rows = (data as Product[]).map(p => [
           p.name,
-          formatNumber(p.stock_current),
           pluralizeUnit(p.visual_unit, p.stock_current),
           `${formatNumber(p.stock_minimum)} ${p.visual_unit}`,
-          getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
-            : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
+          formatNumber(p.stock_current),
+          '',
         ])
-        await exportPdf(label, subtitle, ['Producto', 'Stock actual', 'Presentación', 'Mínimo', 'Estado'], rows, `${activeType}_${today}.pdf`)
+        await exportPdf(
+          label, subtitle,
+          ['Producto', 'Presentación', 'Mínimo', 'Stock actual', 'Stock real'],
+          rows,
+          `${activeType}_${today}.pdf`,
+          { handwritingLastCol: true },
+        )
         break
       }
       case 'entries': {
