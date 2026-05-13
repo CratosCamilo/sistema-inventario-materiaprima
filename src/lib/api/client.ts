@@ -9,11 +9,14 @@ import type {
   CreateExitInput,
   StockAdjustment,
   CreateAdjustmentInput,
+  AdjustmentBatch,
+  CreateAdjustmentBatchInput,
   InventoryMovement,
   AuditLogEntry,
   User,
   CreateUserInput,
   Warehouse,
+  ProductCategory,
 } from '@/types'
 
 async function request<T>(
@@ -89,6 +92,16 @@ export const adjustmentsApi = {
     get<StockAdjustment[]>('/api/adjustments', { warehouse_id: warehouseId, ...filters }),
   create: (warehouseId: number, input: CreateAdjustmentInput) =>
     post<StockAdjustment>('/api/adjustments', input, { warehouse_id: warehouseId }),
+}
+
+// ── Adjustment Batches ────────────────────────────────────────────────────────
+export const adjustmentBatchesApi = {
+  list:   (warehouseId: number, filters?: { date_from?: string; date_to?: string; category?: ProductCategory }) =>
+    get<AdjustmentBatch[]>('/api/adjustments/batches', { warehouse_id: warehouseId, ...filters }),
+  get:    (id: number) =>
+    get<AdjustmentBatch>(`/api/adjustments/batches/${id}`),
+  create: (warehouseId: number, input: CreateAdjustmentBatchInput) =>
+    post<AdjustmentBatch>('/api/adjustments/batches', input, { warehouse_id: warehouseId }),
 }
 
 // ── Movements ─────────────────────────────────────────────────────────────────

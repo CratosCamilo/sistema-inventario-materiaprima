@@ -1,23 +1,43 @@
-:root {
-  /* ── Paleta base ─────────────────────────────────── */
+/* ── Panadería (warehouse 1) — teal ── */
+:root,
+:root[data-warehouse="1"] {
   --bg-primary:       #006a6b;
   --bg-panel:         #007d7e;
   --bg-surface:       #008788;
   --bg-surface-hover: #009899;
 
-  /* ── Texto ───────────────────────────────────────── */
   --text-primary:   #f3fbfb;
   --text-secondary: rgba(243, 251, 251, 0.78);
   --text-muted:     rgba(243, 251, 251, 0.50);
 
-  /* ── Bordes ──────────────────────────────────────── */
   --border:        rgba(191, 191, 191, 0.22);
   --border-strong: rgba(191, 191, 191, 0.42);
 
-  /* ── Acciones ────────────────────────────────────── */
   --primary:        #007d7e;
   --primary-hover:  #009192;
   --primary-active: #00a5a6;
+}
+
+/* ── Pastelería (warehouse 2) — violet ── */
+:root[data-warehouse="2"] {
+  --bg-primary:       #4a1f6e;
+  --bg-panel:         #5a2883;
+  --bg-surface:       #6a3298;
+  --bg-surface-hover: #7a3cad;
+
+  --text-primary:   #f8f0ff;
+  --text-secondary: rgba(248, 240, 255, 0.78);
+  --text-muted:     rgba(248, 240, 255, 0.50);
+
+  --border:        rgba(200, 180, 220, 0.22);
+  --border-strong: rgba(200, 180, 220, 0.42);
+
+  --primary:        #5a2883;
+  --primary-hover:  #6a3298;
+  --primary-active: #7a3cad;
+}
+
+:root {
 
   /* ── Estado ──────────────────────────────────────── */
   --danger:       #ff4d6d;

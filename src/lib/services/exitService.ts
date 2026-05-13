@@ -8,7 +8,10 @@ import {
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm'
 import type { CreateExitInput } from '@/types'
 
-
+function toBaseQty(quantity: number, sentUnit: string, visualUnit: string, factor: number): number {
+  if (!factor || factor <= 1 || sentUnit !== visualUnit) return quantity
+  return quantity * factor
+}
 
 export async function listExits(warehouseId: number, filters?: { date_from?: string; date_to?: string }) {
   const conditions = [eq(exits.warehouse_id, warehouseId)]
@@ -33,13 +36,16 @@ export async function getExit(id: number) {
 
   const items = await db
     .select({
-      id:           exit_items.id,
-      exit_id:      exit_items.exit_id,
-      product_id:   exit_items.product_id,
-      product_name: products.name,
-      quantity:     exit_items.quantity,
-      unit:         exit_items.unit,
-      notes:        exit_items.notes,
+      id:                exit_items.id,
+      exit_id:           exit_items.exit_id,
+      product_id:        exit_items.product_id,
+      product_name:      products.name,
+      quantity:          exit_items.quantity,
+      unit:              exit_items.unit,
+      visual_unit:       products.visual_unit,
+      base_unit:         products.base_unit,
+      conversion_factor: products.conversion_factor,
+      notes:             exit_items.notes,
     })
     .from(exit_items)
     .leftJoin(products, eq(products.id, exit_items.product_id))
@@ -56,12 +62,21 @@ export async function createExit(
 ) {
   if (!input.items?.length) throw new Error('La salida debe tener al menos un producto')
 
-  // Validate stock before any writes
+  // Validar stock antes de escribir — convertir a unidades base para comparar
   for (const item of input.items) {
     const product = await db.select().from(products).where(eq(products.id, item.product_id)).then(r => r[0])
     if (!product || !product.active) throw new Error(`Producto ${item.product_id} no encontrado o inactivo`)
-    if (product.stock_current < item.quantity) {
-      throw new Error(`Stock insuficiente para "${product.name}": disponible ${product.stock_current} ${product.visual_unit}, solicitado ${item.quantity}`)
+
+    const factor   = product.conversion_factor ?? 1
+    const qty_base = toBaseQty(item.quantity, item.unit, product.visual_unit, factor)
+
+    if (product.stock_current < qty_base) {
+      const visual_avail = factor > 1 ? Math.floor(product.stock_current / factor) : product.stock_current
+      throw new Error(
+        `Stock insuficiente para "${product.name}": disponible ${visual_avail} ${product.visual_unit}` +
+        (factor > 1 ? ` (${product.stock_current} ${product.base_unit})` : '') +
+        `, solicitado ${item.quantity} ${item.unit}`
+      )
     }
   }
 
@@ -77,12 +92,14 @@ export async function createExit(
 
   for (const item of input.items) {
     const product = await db.select().from(products).where(eq(products.id, item.product_id)).then(r => r[0]!)
+    const factor   = product.conversion_factor ?? 1
+    const qty_base = toBaseQty(item.quantity, item.unit, product.visual_unit, factor)
 
     await db.insert(exit_items).values({
       exit_id:    exit.id,
       product_id: item.product_id,
-      quantity:   item.quantity,
-      unit:       item.unit,
+      quantity:   qty_base,
+      unit:       product.base_unit,
       notes:      item.notes ?? null,
     })
 
@@ -91,8 +108,8 @@ export async function createExit(
       product_id:      item.product_id,
       type:            'exit',
       direction:       'out',
-      quantity:        item.quantity,
-      unit:            item.unit,
+      quantity:        qty_base,
+      unit:            product.base_unit,
       date:            input.date,
       reference_type:  'exit',
       reference_id:    exit.id,
@@ -103,7 +120,7 @@ export async function createExit(
     })
 
     await db.update(products).set({
-      stock_current: sql`${products.stock_current} - ${item.quantity}`,
+      stock_current: sql`${products.stock_current} - ${qty_base}`,
       updated_at:    sql`(datetime('now'))`,
     }).where(eq(products.id, item.product_id))
   }
@@ -116,6 +133,7 @@ export async function cancelExit(id: number) {
   if (!existingExit) throw new Error(`Salida ${id} no encontrada`)
   if (existingExit.status === 'cancelled') throw new Error('La salida ya está anulada')
 
+  // Quantities stored in base units — reversal is straightforward
   for (const item of existingExit.items ?? []) {
     await db.update(products).set({
       stock_current: sql`${products.stock_current} + ${item.quantity}`,

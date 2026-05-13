@@ -1,3 +1,17 @@
+// Convierte cantidad en unidades base a unidades visuales.
+// Redondea a partir de la mitad: el rollo cae solo cuando se consumió > 50% de él.
+export function toVisual(baseQty: number, factor: number): number {
+  if (!factor || factor <= 1) return baseQty
+  return Math.round(baseQty / factor)
+}
+
+// Muestra "5 cajas (150 paquetes)" o solo "150 kg" si no hay conversión
+export function formatDualUnit(baseQty: number, baseUnit: string, visualUnit: string, factor: number): string {
+  if (!factor || factor <= 1 || baseUnit === visualUnit) return `${formatNumber(baseQty)} ${baseUnit}`
+  const visual = Math.round(baseQty / factor)
+  return `${formatNumber(visual)} ${visualUnit} (${formatNumber(baseQty)} ${baseUnit})`
+}
+
 export function formatDate(iso: string): string {
   if (!iso) return '—'
   const [y, m, d] = iso.slice(0, 10).split('-')

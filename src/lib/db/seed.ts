@@ -27,8 +27,9 @@ export async function runSeed() {
 
   // ── Settings ──────────────────────────────────────────────────────────────
   await db.insert(settings).values([
-    { key: 'company_name',      value: 'Panadería La Esperanza' },
-    { key: 'iva_rate_default',  value: '19' },
+    { key: 'company_name',       value: 'Panadería La Esperanza' },
+    { key: 'iva_rate_default',   value: '19' },
+    { key: 'entry_mode_default', value: 'total_only' },
   ])
 
   // ── Productos Panadería ───────────────────────────────────────────────────
@@ -36,16 +37,16 @@ export async function runSeed() {
     // Produccion
     { warehouse_id: panaderia.id, name: 'Harina de trigo 000', category: 'Produccion', base_unit: 'kg', visual_unit: 'bulto', conversion_factor: 50, stock_minimum: 3, notes: '1 bulto = 50 kg' },
     { warehouse_id: panaderia.id, name: 'Azúcar blanca',        category: 'Produccion', base_unit: 'kg', visual_unit: 'bulto', conversion_factor: 50, stock_minimum: 2 },
-    { warehouse_id: panaderia.id, name: 'Mantequilla 500g',     category: 'Produccion', base_unit: 'unidad', visual_unit: 'caja',  conversion_factor: 24, stock_minimum: 2, notes: '1 caja = 24 un' },
-    { warehouse_id: panaderia.id, name: 'Mantequilla 1000g',    category: 'Produccion', base_unit: 'unidad', visual_unit: 'caja',  conversion_factor: 12, stock_minimum: 2, notes: '1 caja = 12 un' },
+    { warehouse_id: panaderia.id, name: 'Mantequilla 500g',     category: 'Produccion', base_unit: 'unidad', visual_unit: 'caja',  conversion_factor: 24, unit_exit_default: 'base', stock_minimum: 2, notes: '1 caja = 24 un' },
+    { warehouse_id: panaderia.id, name: 'Mantequilla 1000g',    category: 'Produccion', base_unit: 'unidad', visual_unit: 'caja',  conversion_factor: 12, unit_exit_default: 'base', stock_minimum: 2, notes: '1 caja = 12 un' },
     { warehouse_id: panaderia.id, name: 'Queso doble crema',    category: 'Produccion', base_unit: 'kg',    visual_unit: 'kg',    conversion_factor: 1,  stock_minimum: 5 },
     { warehouse_id: panaderia.id, name: 'Jamón',                category: 'Produccion', base_unit: 'kg',    visual_unit: 'kg',    conversion_factor: 1,  stock_minimum: 3 },
-    { warehouse_id: panaderia.id, name: 'Huevos',               category: 'Produccion', base_unit: 'unidad', visual_unit: 'cartón', conversion_factor: 30, stock_minimum: 5, notes: '1 cartón = 30 un' },
+    { warehouse_id: panaderia.id, name: 'Huevos',               category: 'Produccion', base_unit: 'unidad', visual_unit: 'cartón', conversion_factor: 30, unit_exit_default: 'base', stock_minimum: 5, notes: '1 cartón = 30 un' },
     { warehouse_id: panaderia.id, name: 'Levadura en polvo',    category: 'Produccion', base_unit: 'kg',    visual_unit: 'kg',    conversion_factor: 1,  stock_minimum: 1 },
     { warehouse_id: panaderia.id, name: 'Sal',                  category: 'Produccion', base_unit: 'kg',    visual_unit: 'kg',    conversion_factor: 1,  stock_minimum: 2 },
     // Empaques
-    { warehouse_id: panaderia.id, name: 'Plástico para empaque', category: 'Empaques', base_unit: 'unidad', visual_unit: 'rollo',   conversion_factor: 1,   stock_minimum: 3 },
-    { warehouse_id: panaderia.id, name: 'Bolsas pequeñas',       category: 'Empaques', base_unit: 'unidad', visual_unit: 'paquete', conversion_factor: 100, stock_minimum: 5, notes: '1 paquete = 100 un' },
+    { warehouse_id: panaderia.id, name: 'Plástico para empaque', category: 'Empaques', base_unit: 'kg', visual_unit: 'kg', conversion_factor: 1, stock_minimum: 3, weight_based: true },
+    { warehouse_id: panaderia.id, name: 'Bolsas pequeñas',       category: 'Empaques', base_unit: 'unidad', visual_unit: 'paquete', conversion_factor: 100, unit_exit_default: 'base', stock_minimum: 5, notes: '1 paquete = 100 un' },
   ]
 
   await db.insert(products).values(productosP)

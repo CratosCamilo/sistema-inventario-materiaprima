@@ -24,8 +24,11 @@ export async function createProduct(warehouseId: number, input: CreateProductInp
     category:          input.category,
     base_unit:         input.base_unit,
     visual_unit:       input.visual_unit,
-    conversion_factor: input.conversion_factor ?? 1,
-    stock_minimum:     input.stock_minimum,
+    conversion_factor:  input.conversion_factor  ?? 1,
+    unit_entry_default: input.unit_entry_default ?? 'visual',
+    unit_exit_default:  input.unit_exit_default  ?? 'visual',
+    stock_minimum:      input.stock_minimum,
+    weight_based:       input.weight_based ?? false,
     notes:             input.notes ?? null,
   }).returning()
   return row
@@ -40,8 +43,11 @@ export async function updateProduct(id: number, input: UpdateProductInput) {
     category:          input.category          ?? current.category,
     base_unit:         input.base_unit         ?? current.base_unit,
     visual_unit:       input.visual_unit       ?? current.visual_unit,
-    conversion_factor: input.conversion_factor ?? current.conversion_factor,
-    stock_minimum:     input.stock_minimum     ?? current.stock_minimum,
+    conversion_factor:  input.conversion_factor  ?? current.conversion_factor,
+    unit_entry_default: input.unit_entry_default ?? current.unit_entry_default,
+    unit_exit_default:  input.unit_exit_default  ?? current.unit_exit_default,
+    stock_minimum:      input.stock_minimum      ?? current.stock_minimum,
+    weight_based:      input.weight_based      !== undefined ? input.weight_based : current.weight_based,
     notes:             input.notes             !== undefined ? input.notes ?? null : current.notes,
     active:            input.active            !== undefined ? input.active : current.active,
     updated_at:        sql`(datetime('now'))`,
@@ -69,8 +75,12 @@ export async function setInitialStock(
       throw new Error(`"${product.name}" ya tiene inventario inicial. Use Ajustes para corregir.`)
     }
 
+    // quantity ingresada en unidades visuales → convertir a base
+    const factor   = product.conversion_factor ?? 1
+    const qty_base = factor > 1 ? item.quantity * factor : item.quantity
+
     await db.update(products).set({
-      stock_current:        item.quantity,
+      stock_current:        qty_base,
       initial_stock_loaded: true,
       updated_at:           sql`(datetime('now'))`,
     }).where(eq(products.id, item.product_id))
@@ -80,8 +90,8 @@ export async function setInitialStock(
       product_id:      item.product_id,
       type:            'initial',
       direction:       'in',
-      quantity:        item.quantity,
-      unit:            product.visual_unit,
+      quantity:        qty_base,
+      unit:            product.base_unit,
       date:            today,
       reference_type:  'initial',
       reference_id:    item.product_id,

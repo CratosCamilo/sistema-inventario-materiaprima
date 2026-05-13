@@ -22,10 +22,17 @@ export function WarehouseProvider({
   const initial = warehouses.find(w => w.id === initialWarehouseId) ?? warehouses[0]
   const [warehouse, setWarehouse] = useState<Warehouse>(initial)
 
+  // Apply warehouse color theme on mount
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-warehouse', String(initial.id))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const switchWarehouse = useCallback((id: number) => {
     const w = warehouses.find(w => w.id === id)
     if (!w) return
     setWarehouse(w)
+    document.documentElement.setAttribute('data-warehouse', String(id))
     document.cookie = `warehouse_id=${id}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`
   }, [warehouses])
 

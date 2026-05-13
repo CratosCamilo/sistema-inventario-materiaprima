@@ -7,9 +7,9 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi, movementsApi } from '@/lib/api/client'
-import { formatNumber, formatDate, getStockStatus, MOVEMENT_TYPE_LABELS, pluralizeUnit } from '@/utils/formatters'
-import { exportExcel } from '@/utils/exportExcel'
-import { exportPdf } from '@/utils/exportPdf'
+import { formatNumber, formatDate, getStockStatus, MOVEMENT_TYPE_LABELS, pluralizeUnit, toVisual, formatDualUnit } from '@/utils/formatters'
+import { exportExcelMultiSheet } from '@/utils/exportExcel'
+import { exportPdfMultiSection } from '@/utils/exportPdf'
 import type { Product, ProductCategory, InventoryMovement } from '@/types'
 import styles from './stock.module.css'
 
@@ -26,6 +26,16 @@ export default function StockPage() {
   const [historyProduct,   setHistoryProduct]   = useState<Product | null>(null)
   const [productMovements, setProductMovements] = useState<InventoryMovement[]>([])
   const [historyLoading,   setHistoryLoading]   = useState(false)
+  // IDs de productos que el usuario prefiere ver en unidad base (en vez de visual)
+  const [baseViewIds, setBaseViewIds] = useState<Set<number>>(new Set())
+
+  function toggleBaseView(id: number) {
+    setBaseViewIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -49,7 +59,10 @@ export default function StockPage() {
   }
 
   const enriched = products
-    .map(p => ({ ...p, stock_status: getStockStatus(p.stock_current, p.stock_minimum) }))
+    .map(p => ({
+      ...p,
+      stock_status: getStockStatus(toVisual(p.stock_current, p.conversion_factor ?? 1), p.stock_minimum),
+    }))
     .sort((a, b) => {
       if (a.category === b.category) return a.name.localeCompare(b.name, 'es')
       return a.category === 'Produccion' ? -1 : 1
@@ -69,32 +82,49 @@ export default function StockPage() {
   const today = new Date().toISOString().slice(0, 10)
 
   function handleExportExcel() {
-    const rows = filtered.map(p => [
-      p.name,
-      pluralizeUnit(p.visual_unit, p.stock_current),
-      p.stock_minimum,
-      p.stock_current,
-      getStockStatus(p.stock_current, p.stock_minimum) === 'normal' ? 'Normal'
-        : getStockStatus(p.stock_current, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
+    const makeRows = (prods: typeof filtered) => prods.map(p => {
+      const factor  = p.conversion_factor ?? 1
+      const visual  = toVisual(p.stock_current, factor)
+      return [
+        p.name,
+        pluralizeUnit(p.visual_unit, visual),
+        p.stock_minimum,
+        visual,
+        getStockStatus(visual, p.stock_minimum) === 'normal' ? 'Normal'
+          : getStockStatus(visual, p.stock_minimum) === 'low' ? 'Bajo mínimo' : 'Crítico',
+      ]
+    })
+    const headers = ['Producto', 'Presentación', 'Mínimo', 'Stock actual', 'Estado']
+    const prod    = filtered.filter(p => p.category === 'Produccion')
+    const emp     = filtered.filter(p => p.category === 'Empaques')
+    exportExcelMultiSheet(`stock_${today}.xlsx`, [
+      { name: 'Producción', headers, rows: makeRows(prod) },
+      { name: 'Empaques',   headers, rows: makeRows(emp)  },
     ])
-    exportExcel(`stock_${today}.xlsx`, ['Producto', 'Presentación', 'Mínimo', 'Stock actual', 'Estado'], rows)
   }
 
   async function handleExportPdf() {
-    const rows = filtered.map(p => [
-      p.name,
-      pluralizeUnit(p.visual_unit, p.stock_current),
-      `${formatNumber(p.stock_minimum)} ${p.visual_unit}`,
-      formatNumber(p.stock_current),
-      '',
-    ])
-    await exportPdf(
+    const makeRows = (prods: typeof filtered) => prods.map(p => {
+      const visual = toVisual(p.stock_current, p.conversion_factor ?? 1)
+      return [
+        p.name,
+        pluralizeUnit(p.visual_unit, visual),
+        `${formatNumber(p.stock_minimum)} ${p.visual_unit}`,
+        formatNumber(visual),
+        '',
+      ]
+    })
+    const headers = ['Producto', 'Presentación', 'Mínimo', 'Stock actual', 'Stock real']
+    const prod    = filtered.filter(p => p.category === 'Produccion')
+    const emp     = filtered.filter(p => p.category === 'Empaques')
+    await exportPdfMultiSection(
       'Stock actual',
       `${warehouse.name} — ${today}`,
-      ['Producto', 'Presentación', 'Mínimo', 'Stock actual', 'Stock real'],
-      rows,
+      [
+        { sectionTitle: 'Producción', headers, rows: makeRows(prod), options: { handwritingLastCol: true } },
+        { sectionTitle: 'Empaques',   headers, rows: makeRows(emp),  options: { handwritingLastCol: true } },
+      ],
       `stock_${today}.pdf`,
-      { handwritingLastCol: true },
     )
   }
 
@@ -147,29 +177,42 @@ export default function StockPage() {
         <Table
           columns={[
             { key: 'name',     header: 'Producto', render: r => <span style={{color:'var(--text-primary)'}}>{r.name}</span> },
-            { key: 'stock_current', header: 'Stock', align: 'right', width: '88px',
-              render: r => (
-                <span style={{
-                  color: r.stock_status === 'critical' ? 'var(--danger)' : r.stock_status === 'low' ? 'var(--warning)' : 'var(--text-primary)',
-                  fontWeight: 700,
-                  fontSize: '1.15rem',
-                  lineHeight: 1,
-                  display: 'block',
-                }}>
-                  {formatNumber(r.stock_current)}
-                </span>
-              )},
-            { key: 'visual_unit', header: 'Presentación', width: '110px',
-              render: r => (
-                <span style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: 600 }}>
-                  {pluralizeUnit(r.visual_unit, r.stock_current)}
-                </span>
-              )},
+            { key: 'stock_current', header: 'Stock', width: '200px',
+              render: r => {
+                const factor    = r.conversion_factor ?? 1
+                const hasConv   = factor > 1 && r.base_unit !== r.visual_unit
+                const inBase    = baseViewIds.has(r.id)
+                const color     = r.stock_status === 'critical' ? 'var(--danger)' : r.stock_status === 'low' ? 'var(--warning)' : 'var(--text-primary)'
+                const visual    = toVisual(r.stock_current, factor)
+
+                if (!hasConv) {
+                  return (
+                    <span style={{ color, fontWeight: 700, fontSize: '1.1rem' }}>
+                      {formatNumber(r.stock_current)} {r.visual_unit}
+                    </span>
+                  )
+                }
+
+                const primary   = inBase ? `${formatNumber(r.stock_current)} ${r.base_unit}` : `${formatNumber(visual)} ${r.visual_unit}`
+                const secondary = inBase ? `${formatNumber(visual)} ${r.visual_unit}` : `${formatNumber(r.stock_current)} ${r.base_unit}`
+                const toggleTo  = inBase ? r.visual_unit : r.base_unit
+                return (
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                    <span
+                      onClick={e => { e.stopPropagation(); toggleBaseView(r.id) }}
+                      title={`Cambiar a ${toggleTo}`}
+                      style={{ color, fontWeight: 700, fontSize: '1.1rem', cursor: 'pointer' }}
+                    >{primary}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>({secondary})</span>
+                  </div>
+                )
+              }},
             { key: 'stock_minimum', header: 'Mínimo', align: 'right',
               render: r => `${formatNumber(r.stock_minimum)} ${r.visual_unit}` },
             { key: 'diff', header: 'Diferencia', align: 'right',
               render: r => {
-                const diff = r.stock_current - r.stock_minimum
+                const visual = toVisual(r.stock_current, r.conversion_factor ?? 1)
+                const diff   = visual - r.stock_minimum
                 return (
                   <span style={{ color: diff >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                     {diff >= 0 ? '+' : ''}{formatNumber(diff)} {r.visual_unit}
@@ -215,11 +258,17 @@ export default function StockPage() {
                   { key: 'date',      header: 'Fecha',    render: r => formatDate(r.date) },
                   { key: 'type',      header: 'Tipo',     render: r => MOVEMENT_TYPE_LABELS[r.type] ?? r.type },
                   { key: 'quantity',  header: 'Cantidad', align: 'right',
-                    render: r => (
-                      <span style={{color: r.direction === 'in' ? 'var(--success)' : r.direction === 'out' ? 'var(--danger)' : 'var(--warning)', fontWeight: 600}}>
-                        {r.direction === 'out' ? '−' : '+'}{formatNumber(r.quantity)} {r.unit}
-                      </span>
-                    )},
+                    render: r => {
+                      const prod   = historyProduct
+                      const factor = prod?.conversion_factor ?? 1
+                      const sign   = r.direction === 'out' ? '−' : r.direction === 'in' ? '+' : '±'
+                      const color  = r.direction === 'in' ? 'var(--success)' : r.direction === 'out' ? 'var(--danger)' : 'var(--warning)'
+                      return (
+                        <span style={{ color, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {sign}{formatDualUnit(r.quantity, r.unit, prod?.visual_unit ?? r.unit, factor)}
+                        </span>
+                      )
+                    }},
                   { key: 'notes',     header: 'Notas',    render: r => r.notes ?? '—' },
                   { key: 'created_by_name', header: 'Usuario', render: r => r.created_by_name ?? '—' },
                 ]}

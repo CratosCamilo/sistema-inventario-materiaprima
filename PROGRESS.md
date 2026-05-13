@@ -1,6 +1,6 @@
 # PROGRESS.md — Estado del proyecto
 
-Última actualización: 2026-05-11
+Última actualización: 2026-05-13
 
 ---
 
@@ -30,7 +30,7 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 - [x] Schema Drizzle completo (`src/lib/db/schema.ts`)
   - `users` (roles: admin, operador, entradas, salidas)
   - `warehouses` (Panadería id=1, Pastelería id=2)
-  - `products` (stock_current, stock_minimum, initial_stock_loaded, active, category)
+  - `products` (stock_current, stock_minimum, initial_stock_loaded, active, category, unit_entry_default, unit_exit_default)
   - `inventory_movements` (type, direction, warehouse_id)
   - `purchase_entries` (invoice_number, subtotal, iva_total, total, edited_by, status)
   - `purchase_entry_items` (applies_iva, iva_rate, line_total, iva_amount)
@@ -121,6 +121,10 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 - [x] Columna Tipo eliminada (solo Producto, Stock, Mínimo, Diferencia, Estado)
 - [x] Botones **↓ Excel** y **↓ PDF conteo** en el encabezado — exportan la vista filtrada activa
   - El PDF incluye columna "Stock real" vacía (cuadro con borde) para llenar a lápiz en conteo físico
+- [x] **Sistema de doble unidad**: columna Stock muestra unidad visual (grande) + unidad base (pequeña, entre paréntesis)
+  - Clic en el valor principal alterna entre unidad visual y base (sin botón extra)
+  - Productos sin conversión (factor=1) muestran solo su unidad, sin toggle
+  - `toVisual(baseQty, factor)` usa `Math.round` — la unidad visual no cae hasta haber consumido >50%
 
 ### Resumen / Dashboard (`/resumen`)
 - [x] Métricas: total, normal, bajo, crítico
@@ -130,6 +134,8 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 ### Productos (`/productos`)
 - [x] Lista con búsqueda, filtro categoría, mostrar inactivos
 - [x] Modal crear / editar producto
+  - Campos `base_unit`, `visual_unit`, `conversion_factor` para sistema de doble unidad
+  - `unit_entry_default` / `unit_exit_default`: unidad preseleccionada al registrar movimientos
 - [x] Desactivar producto
 
 ### Entradas (`/entradas`)
@@ -138,17 +144,23 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
   - Combobox con búsqueda para selección de producto
   - IVA por línea (activo por defecto), columna Vr. IVA calculada en tiempo real
   - Orden de columnas: Producto → Cantidad → Unidad → IVA → %IVA → Vr.IVA → Total línea
+  - Unidad: dropdown de 2 opciones (visual / base) preseleccionado según `unit_entry_default`
   - Folio obligatorio (validación frontend)
   - Confirmación antes de guardar (modal custom)
   - Aviso al cerrar si hay datos sin guardar
 - [x] Modal detalle con items, totales e historial de ediciones
 - [x] Auditoría: cada edición graba en `audit_log`
+- [x] Cantidades almacenadas internamente en unidad base; conversión transparente al usuario
 
 ### Salidas (`/salidas`)
 - [x] Lista con filtros de fecha
 - [x] Modal registrar salida con múltiples productos
-- [x] Stock disponible visible al seleccionar producto
-- [x] Validación de stock insuficiente (backend)
+  - Selector de categoría (Producción / Empaques) antes de abrir el formulario
+  - Productos por peso: campos Inicio (kg) / Final (kg) / Diferencia calculada automáticamente
+  - Productos con conversión: dropdown unidad (visual / base) preseleccionado según `unit_exit_default`
+  - Grid de 5 columnas: combobox | stock | cantidad | unidad | ✕
+- [x] Stock disponible visible al seleccionar producto (en unidad visual)
+- [x] Validación de stock insuficiente (backend, en unidades base)
 - [x] Modal detalle
 
 ### Ajustes (`/ajustes`)
@@ -156,12 +168,13 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 - [x] Modal con comparador visual sistema → físico → diferencia coloreada
 
 ### Reportes (`/reportes`)
-- [x] Stock actual
-- [x] Productos bajo mínimo
-- [x] Entradas por fecha
-- [x] Salidas por fecha
-- [x] Ajustes por fecha
-- [x] Historial de movimientos
+- [x] **Stock actual** — inventario completo con estados
+- [x] **Productos bajo mínimo** — solo los que necesitan pedido
+- [x] **Entradas por producto** — balance por producto en el período (suma de todas las entradas); dos hojas Excel/PDF: Producción + Empaques
+- [x] **Salidas por producto** — balance por producto en el período (suma de todas las salidas); misma estructura
+- [x] **Facturas por fecha** — vista de cabeceras de facturas: folio, proveedor, responsable, total
+- [x] **Ajustes de inventario** — ajuste neto por producto en el período (signed: +/−); dos hojas Excel/PDF
+- [x] **Historial de movimientos** — todos los movimientos con filtro por tipo
 - [x] **Ediciones de facturas** — constancia de todas las ediciones con folio, fecha, proveedor, usuario
 
 ### Configuración (`/configuracion`)
@@ -176,6 +189,7 @@ Stack:        Next.js 14 App Router + Drizzle ORM + SQLite/Turso + JWT
 
 ### Exportación
 - [x] Todos los reportes exportan `.xlsx` con fuente Trebuchet MS 12, separador de miles y cabecera con color teal
+- [x] Reportes de balance (entradas/salidas/ajustes): **dos hojas** en Excel y **dos secciones** en PDF (Producción + Empaques)
 - [x] Filtros específicos por tipo de reporte antes de generar
 - [x] Todos los PDFs en orientación **vertical (portrait A4)** — caben más filas por hoja
 - [x] PDF de stock (reportes + stock actual): columna **"Stock real"** con borde visible para conteo físico a mano

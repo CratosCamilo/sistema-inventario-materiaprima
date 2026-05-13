@@ -21,8 +21,9 @@ export default function ConfiguracionPage() {
   const session = useSession()
   const isAdmin = session.role === 'admin'
 
-  const [companyName, setCompanyName] = useState('')
-  const [ivaRate, setIvaRate]         = useState('19')
+  const [companyName, setCompanyName]     = useState('')
+  const [ivaRate, setIvaRate]             = useState('19')
+  const [entryModeDefault, setEntryModeDefault] = useState('total_only')
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [settingsLoading, setSettingsLoading] = useState(true)
 
@@ -37,6 +38,7 @@ export default function ConfiguracionPage() {
     settingsApi.get().then(all => {
       setCompanyName(all.company_name ?? '')
       setIvaRate(all.iva_rate_default ?? '19')
+      setEntryModeDefault(all.entry_mode_default ?? 'total_only')
       setSettingsLoading(false)
     })
   }, [])
@@ -50,7 +52,11 @@ export default function ConfiguracionPage() {
 
   async function handleSaveSettings(e: React.FormEvent) {
     e.preventDefault()
-    await settingsApi.update({ company_name: companyName, iva_rate_default: ivaRate })
+    await settingsApi.update({
+      company_name:       companyName,
+      iva_rate_default:   ivaRate,
+      entry_mode_default: entryModeDefault,
+    })
     setSettingsSaved(true)
     setTimeout(() => setSettingsSaved(false), 2000)
   }
@@ -153,6 +159,15 @@ export default function ConfiguracionPage() {
                   value={ivaRate} onChange={e => setIvaRate(e.target.value)}
                   disabled={!isAdmin} style={{ width: 100 }} />
                 <p className={styles.hint}>Se usará como porcentaje de IVA sugerido en nuevas entradas</p>
+              </div>
+              <div>
+                <label className={styles.label}>Modo de entrada por defecto</label>
+                <select value={entryModeDefault} onChange={e => setEntryModeDefault(e.target.value)}
+                  disabled={!isAdmin} style={{ width: 220 }}>
+                  <option value="total_only">Solo totalizar (cantidad + total factura)</option>
+                  <option value="detailed">Detallar precios (precio por producto + IVA)</option>
+                </select>
+                <p className={styles.hint}>Define qué modo viene seleccionado al registrar una nueva entrada</p>
               </div>
               {isAdmin && (
                 <div className={styles.saveRow}>

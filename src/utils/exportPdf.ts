@@ -17,26 +17,17 @@ async function loadLogoBase64(): Promise<string | null> {
   }
 }
 
-export async function exportPdf(
+function drawHeader(
+  doc: jsPDF,
   title: string,
   subtitle: string,
-  headers: string[],
-  rows: (string | number | null | undefined)[][],
-  filename: string,
-  options?: { handwritingLastCol?: boolean },
-) {
-  const doc    = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+  rowCount: number,
+  logoBase64: string | null,
+  today: string,
+): number {
   const pageW  = doc.internal.pageSize.getWidth()
   const margin = 12
-
-  const today = new Date().toLocaleDateString('es-CO', {
-    day: '2-digit', month: 'long', year: 'numeric',
-  })
-
-  const logoBase64 = await loadLogoBase64()
-
-  // ── Rótulo ──
-  const topY     = 10
+  const topY   = 10
   const logoSize = 14
   const barX     = margin + logoSize + 4
   const textX    = logoBase64 ? barX + 3 : margin
@@ -61,7 +52,7 @@ export async function exportPdf(
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
   doc.setTextColor(51, 51, 51)
-  doc.text(`${rows.length} registro(s)`, pageW - margin, topY + 6, { align: 'right' })
+  doc.text(`${rowCount} registro(s)`, pageW - margin, topY + 6, { align: 'right' })
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
@@ -73,14 +64,24 @@ export async function exportPdf(
   doc.setLineWidth(0.5)
   doc.line(margin, lineY, pageW - margin, lineY)
 
-  // ── Tabla ──
+  return lineY
+}
+
+function drawTable(
+  doc: jsPDF,
+  headers: string[],
+  rows: (string | number | null | undefined)[][],
+  startY: number,
+  options?: { handwritingLastCol?: boolean },
+) {
+  const margin = 12
   const handwritingLastCol = options?.handwritingLastCol ?? false
   const lastColIdx = headers.length - 1
 
   autoTable(doc, {
     head: [headers],
     body: rows.map(r => r.map(cell => String(cell ?? ''))),
-    startY: lineY + 3,
+    startY,
     margin: { left: margin, right: margin },
     styles: {
       font: 'helvetica',
@@ -117,7 +118,12 @@ export async function exportPdf(
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const finalY = (doc as any).lastAutoTable?.finalY ?? lineY + 10
+  return (doc as any).lastAutoTable?.finalY ?? startY + 10
+}
+
+function drawFooter(doc: jsPDF, finalY: number) {
+  const pageW  = doc.internal.pageSize.getWidth()
+  const margin = 12
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.5)
   doc.setTextColor(187, 187, 187)
@@ -125,13 +131,84 @@ export async function exportPdf(
     'Industria Bizcopan Zapatoca — Sistema de Inventario',
     pageW - margin, finalY + 6, { align: 'right' },
   )
+}
 
-  // ── Descargar con nombre correcto y abrir en nueva pestaña ──
+export async function exportPdf(
+  title: string,
+  subtitle: string,
+  headers: string[],
+  rows: (string | number | null | undefined)[][],
+  filename: string,
+  options?: { handwritingLastCol?: boolean },
+) {
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+  const today = new Date().toLocaleDateString('es-CO', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  })
+  const logoBase64 = await loadLogoBase64()
+
+  const lineY  = drawHeader(doc, title, subtitle, rows.length, logoBase64, today)
+  const finalY = drawTable(doc, headers, rows, lineY + 3, options)
+  drawFooter(doc, finalY)
+
+  download(doc, filename)
+}
+
+export interface PdfSection {
+  sectionTitle: string
+  headers: string[]
+  rows: (string | number | null | undefined)[][]
+  options?: { handwritingLastCol?: boolean }
+}
+
+export async function exportPdfMultiSection(
+  title: string,
+  subtitle: string,
+  sections: PdfSection[],
+  filename: string,
+) {
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+  const pageW  = doc.internal.pageSize.getWidth()
+  const margin = 12
+  const today  = new Date().toLocaleDateString('es-CO', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  })
+  const logoBase64 = await loadLogoBase64()
+  const totalRows  = sections.reduce((s, sec) => s + sec.rows.length, 0)
+
+  let isFirstSection = true
+
+  for (const section of sections) {
+    if (!isFirstSection) {
+      doc.addPage()
+    }
+    isFirstSection = false
+
+    const lineY = drawHeader(doc, title, subtitle, totalRows, logoBase64, today)
+
+    // Section sub-title
+    const secY = lineY + 5
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(0, 106, 107)
+    doc.text(section.sectionTitle.toUpperCase(), margin, secY)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    doc.setTextColor(85, 85, 85)
+    doc.text(`${section.rows.length} producto(s)`, pageW - margin, secY, { align: 'right' })
+
+    const finalY = drawTable(doc, section.headers, section.rows, secY + 4, section.options)
+    drawFooter(doc, finalY)
+  }
+
+  download(doc, filename)
+}
+
+function download(doc: jsPDF, filename: string) {
   doc.setProperties({ title: filename.replace('.pdf', '') })
   const blob = doc.output('blob')
   const url  = URL.createObjectURL(blob)
 
-  // Descarga directa (como Excel)
   const a = document.createElement('a')
   a.href = url
   a.download = filename
@@ -139,8 +216,6 @@ export async function exportPdf(
   a.click()
   document.body.removeChild(a)
 
-  // También abre en nueva pestaña para visualizar
   window.open(url, '_blank')
-
   setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }

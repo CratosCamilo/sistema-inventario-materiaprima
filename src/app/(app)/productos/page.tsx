@@ -7,7 +7,7 @@ import { Table } from '@/components/ui/Table'
 import { Modal } from '@/components/ui/Modal'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { productsApi } from '@/lib/api/client'
-import { formatNumber, getStockStatus } from '@/utils/formatters'
+import { formatNumber, getStockStatus, toVisual, formatDualUnit } from '@/utils/formatters'
 import type { Product, CreateProductInput } from '@/types'
 import styles from './productos.module.css'
 
@@ -23,6 +23,11 @@ export default function ProductosPage() {
   const [editing, setEditing]    = useState<Product | null>(null)
   const [saving, setSaving]      = useState(false)
   const [error, setError]        = useState('')
+  const [formCategory, setFormCategory] = useState('')
+  const [weightBased, setWeightBased]   = useState(false)
+  const [formVisualUnit, setFormVisualUnit] = useState('')
+  const [formBaseUnit, setFormBaseUnit]   = useState('kg')
+  const [formFactor, setFormFactor]       = useState(1)
 
   const load = useCallback(() => {
     productsApi.list(warehouse.id, true).then(setProducts)
@@ -37,8 +42,26 @@ export default function ProductosPage() {
     return true
   })
 
-  function openCreate() { setEditing(null); setError(''); setModalOpen(true) }
-  function openEdit(p: Product) { setEditing(p); setError(''); setModalOpen(true) }
+  function openCreate() {
+    setEditing(null)
+    setError('')
+    setFormCategory('')
+    setWeightBased(false)
+    setFormVisualUnit('')
+    setFormBaseUnit('kg')
+    setFormFactor(1)
+    setModalOpen(true)
+  }
+  function openEdit(p: Product) {
+    setEditing(p)
+    setError('')
+    setFormCategory(p.category)
+    setWeightBased(p.weight_based ?? false)
+    setFormVisualUnit(p.visual_unit)
+    setFormBaseUnit(p.base_unit)
+    setFormFactor(p.conversion_factor ?? 1)
+    setModalOpen(true)
+  }
   function closeModal() { setModalOpen(false); setEditing(null) }
 
   async function handleDeactivate(p: Product) {
@@ -51,14 +74,23 @@ export default function ProductosPage() {
     e.preventDefault()
     const fd   = new FormData(e.currentTarget)
     const data = Object.fromEntries(fd.entries())
+    const cat  = String(data.category) as 'Produccion' | 'Empaques'
+    const factor = Number(data.conversion_factor) || 1
+    const vUnit  = String(data.visual_unit)
+    const bUnit  = String(data.base_unit)
+    const sameUnit = factor <= 1 || vUnit === bUnit
+
     const input: CreateProductInput = {
-      name:              String(data.name),
-      category:          String(data.category) as 'Produccion' | 'Empaques',
-      base_unit:         String(data.base_unit),
-      visual_unit:       String(data.visual_unit),
-      conversion_factor: Number(data.conversion_factor) || 1,
-      stock_minimum:     Number(data.stock_minimum) || 0,
-      notes:             String(data.notes) || undefined,
+      name:               String(data.name),
+      category:           cat,
+      base_unit:          bUnit,
+      visual_unit:        vUnit,
+      conversion_factor:  factor,
+      unit_entry_default: sameUnit ? 'visual' : (String(data.unit_entry_default) as 'visual' | 'base'),
+      unit_exit_default:  sameUnit ? 'visual' : (String(data.unit_exit_default) as 'visual' | 'base'),
+      stock_minimum:      Number(data.stock_minimum) || 0,
+      weight_based:       cat === 'Empaques' ? weightBased : false,
+      notes:              String(data.notes) || undefined,
     }
     setSaving(true); setError('')
     try {
@@ -69,6 +101,8 @@ export default function ProductosPage() {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally { setSaving(false) }
   }
+
+  const hasConversion = formFactor > 1 && formVisualUnit && formBaseUnit && formVisualUnit !== formBaseUnit
 
   return (
     <div className={styles.page}>
@@ -102,17 +136,32 @@ export default function ProductosPage() {
             { key: 'name', header: 'Nombre', render: r => (
               <span className={styles.productName}>
                 {r.name}
+                {r.weight_based && <Badge variant="warning">Por peso</Badge>}
                 {!r.active && <Badge variant="neutral">Inactivo</Badge>}
               </span>
             )},
-            { key: 'category',      header: 'Categoría',   render: r => r.category === 'Produccion' ? 'Producción' : 'Empaques' },
-            { key: 'visual_unit',   header: 'Unidad' },
+            { key: 'category', header: 'Categoría', render: r => r.category === 'Produccion' ? 'Producción' : 'Empaques' },
+            { key: 'visual_unit', header: 'Unidad operativa',
+              render: r => (
+                <span>
+                  {r.visual_unit}
+                  {r.conversion_factor > 1 && r.base_unit !== r.visual_unit && (
+                    <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:4}}>
+                      (1={r.conversion_factor} {r.base_unit})
+                    </span>
+                  )}
+                </span>
+              )},
             { key: 'stock_current', header: 'Stock actual', align: 'right',
-              render: r => <strong>{formatNumber(r.stock_current)} {r.visual_unit}</strong> },
+              render: r => (
+                <strong style={{whiteSpace:'nowrap'}}>
+                  {formatDualUnit(r.stock_current, r.base_unit, r.visual_unit, r.conversion_factor ?? 1)}
+                </strong>
+              )},
             { key: 'stock_minimum', header: 'Mínimo', align: 'right',
               render: r => `${formatNumber(r.stock_minimum)} ${r.visual_unit}` },
             { key: 'status', header: 'Estado',
-              render: r => <StockStatusBadge status={getStockStatus(r.stock_current, r.stock_minimum)} /> },
+              render: r => <StockStatusBadge status={getStockStatus(toVisual(r.stock_current, r.conversion_factor ?? 1), r.stock_minimum)} /> },
             { key: 'actions', header: '', align: 'right', width: '120px',
               render: r => (
                 <div className={styles.actions}>
@@ -149,15 +198,24 @@ export default function ProductosPage() {
           <div className={styles.formGrid}>
             <div>
               <label className={styles.label}>Categoría *</label>
-              <select name="category" required defaultValue={editing?.category ?? ''}>
+              <select name="category" required value={formCategory || (editing?.category ?? '')}
+                onChange={e => { setFormCategory(e.target.value); if (e.target.value !== 'Empaques') setWeightBased(false) }}>
                 <option value="">Seleccionar...</option>
                 <option value="Produccion">Producción</option>
                 <option value="Empaques">Empaques</option>
               </select>
+              {(formCategory === 'Empaques' || editing?.category === 'Empaques') && (
+                <label style={{display:'flex',alignItems:'center',gap:8,marginTop:8,fontSize:13,cursor:'pointer'}}>
+                  <input type="checkbox" checked={weightBased}
+                    onChange={e => setWeightBased(e.target.checked)} />
+                  Salida por peso diferencial (⚖ rollo)
+                </label>
+              )}
             </div>
             <div>
               <label className={styles.label}>Unidad operativa *</label>
-              <select name="visual_unit" required defaultValue={editing?.visual_unit ?? ''}>
+              <select name="visual_unit" required value={formVisualUnit || (editing?.visual_unit ?? '')}
+                onChange={e => setFormVisualUnit(e.target.value)}>
                 <option value="">Seleccionar...</option>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
@@ -166,21 +224,50 @@ export default function ProductosPage() {
 
           <div className={styles.formGrid}>
             <div>
-              <label className={styles.label}>Unidad base (referencia)</label>
-              <select name="base_unit" defaultValue={editing?.base_unit ?? 'kg'}>
+              <label className={styles.label}>Unidad base</label>
+              <select name="base_unit" value={formBaseUnit}
+                onChange={e => setFormBaseUnit(e.target.value)}>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
+              <p className={styles.hint}>Unidad granular de seguimiento interno</p>
             </div>
             <div>
               <label className={styles.label}>Factor de conversión</label>
-              <input name="conversion_factor" type="number" min="0" step="any"
-                defaultValue={editing?.conversion_factor ?? 1} placeholder="1" />
-              <p className={styles.hint}>Ej: 1 bulto = 50 kg → factor 50</p>
+              <input name="conversion_factor" type="number" min="1" step="any"
+                value={formFactor}
+                onChange={e => setFormFactor(Number(e.target.value) || 1)}
+                placeholder="1" />
+              <p className={styles.hint}>
+                {hasConversion
+                  ? `1 ${formVisualUnit} = ${formFactor} ${formBaseUnit}`
+                  : 'Sin conversión (misma unidad)'}
+              </p>
             </div>
           </div>
 
+          {hasConversion && (
+            <div className={styles.formGrid}>
+              <div>
+                <label className={styles.label}>Unidad por defecto — Entradas</label>
+                <select name="unit_entry_default" defaultValue={editing?.unit_entry_default ?? 'visual'}>
+                  <option value="visual">Operativa ({formVisualUnit})</option>
+                  <option value="base">Base ({formBaseUnit})</option>
+                </select>
+                <p className={styles.hint}>La que se pre-selecciona al registrar una entrada</p>
+              </div>
+              <div>
+                <label className={styles.label}>Unidad por defecto — Salidas</label>
+                <select name="unit_exit_default" defaultValue={editing?.unit_exit_default ?? 'visual'}>
+                  <option value="visual">Operativa ({formVisualUnit})</option>
+                  <option value="base">Base ({formBaseUnit})</option>
+                </select>
+                <p className={styles.hint}>La que se pre-selecciona al registrar una salida</p>
+              </div>
+            </div>
+          )}
+
           <div className={styles.formRow}>
-            <label className={styles.label}>Stock mínimo *</label>
+            <label className={styles.label}>Stock mínimo * (en {formVisualUnit || 'unidades operativas'})</label>
             <input name="stock_minimum" type="number" min="0" step="any" required
               defaultValue={editing?.stock_minimum ?? 0} />
           </div>

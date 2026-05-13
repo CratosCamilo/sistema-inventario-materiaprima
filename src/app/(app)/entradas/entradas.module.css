@@ -21,6 +21,43 @@
   color: var(--danger); font-size: 13px;
 }
 
+/* ── Mode toggle ── */
+.modeToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.modeLabel {
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.modeOption {
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  transition: all var(--transition);
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  flex-direction: column; align-items: flex-start; gap: 2px;
+}
+.modeOption input[type="radio"] { display: none; }
+.modeOption:hover { border-color: var(--primary); }
+.modeActive {
+  border-color: var(--primary-active) !important;
+  background: rgba(0, 149, 150, 0.15);
+  color: var(--text-primary);
+}
+.modeHint {
+  font-size: 10px; color: var(--text-muted); font-weight: 400;
+}
+
 /* ── Items ── */
 .itemsSection { display: flex; flex-direction: column; gap: 8px; }
 .itemsHeader  { display: flex; align-items: center; justify-content: space-between; }
@@ -69,6 +106,42 @@
   border-radius: var(--radius-sm); transition: background var(--transition);
 }
 .removeItem:hover { background: var(--danger-soft); }
+
+/* ── Simple mode row (total_only) ── */
+.itemsHeaderRowSimple {
+  display: grid;
+  grid-template-columns: 2fr 90px 90px 28px;
+  gap: 6px;
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 0 8px;
+}
+.itemRowSimple {
+  display: grid;
+  grid-template-columns: 2fr 90px 90px 28px;
+  gap: 6px;
+  align-items: center;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  border: 1px solid var(--border);
+}
+.invoiceTotalRow {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 8px;
+  border-top: 1px solid var(--border);
+}
+.invoiceTotalInput {
+  display: flex; align-items: center; gap: 6px;
+  max-width: 240px;
+}
+.invoiceTotalPrefix {
+  font-size: 18px; font-weight: 700; color: var(--text-primary);
+}
+.invoiceTotalInput input {
+  font-size: 18px; font-weight: 700; text-align: right;
+  border: 2px solid var(--primary);
+}
 
 .totalsRow {
   display: flex; justify-content: flex-end; gap: 24px;

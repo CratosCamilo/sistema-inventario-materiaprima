@@ -7,6 +7,24 @@
 .filterGroup label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
 .filterGroup input  { width: 150px; }
 
+/* ── Category picker ── */
+.categoryPick {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 24px; max-width: 600px; margin: 40px auto;
+}
+.categoryCard {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  background: var(--bg-panel); border: 2px solid var(--border);
+  border-radius: var(--radius); padding: 40px 24px;
+  cursor: pointer; transition: border-color var(--transition), background var(--transition);
+  text-align: center;
+}
+.categoryCard:hover { border-color: var(--primary); background: var(--bg-surface-hover); }
+.categoryCard strong { font-size: 18px; color: var(--text-primary); }
+.categoryCard span   { font-size: 13px; color: var(--text-muted); }
+.categoryIcon        { font-size: 32px; }
+
+/* ── Form ── */
 .form      { display: flex; flex-direction: column; gap: 16px; }
 .formGrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
@@ -14,33 +32,68 @@
   font-size: 12px; font-weight: 600; color: var(--text-secondary);
   text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 5px;
 }
+.destinoDisplay {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  padding: 8px 0;
+}
 
 .formError {
   background: var(--danger-soft); border: 1px solid var(--danger);
   border-radius: var(--radius-sm); padding: 10px 14px; color: var(--danger); font-size: 13px;
 }
 
+/* ── Items ── */
 .itemsSection { display: flex; flex-direction: column; gap: 8px; }
 .itemsHeader  { display: flex; align-items: center; justify-content: space-between; }
 .emptyItems   { font-size: 13px; color: var(--text-muted); text-align: center; padding: 16px 0; }
 
+/* Regular row: combobox | stock | qty | unit | X */
 .itemRow {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 32px;
-  gap: 8px; align-items: start;
+  grid-template-columns: 1fr 72px 110px 82px 28px;
+  gap: 8px; align-items: center;
   background: var(--bg-primary); border-radius: var(--radius-sm);
   padding: 8px; border: 1px solid var(--border);
 }
 
-.stockInfo { font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px; }
+/* Weight row: combobox | stock | inicio | final | diferencia | X */
+.itemRowWeight {
+  grid-template-columns: 1fr 72px 88px 88px 74px 32px;
+}
+
+.stockCol {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; line-height: 1.25;
+}
+.stockColNum { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.stockColUnit { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.weightBadge { font-size: 11px; color: var(--warning); font-weight: 700; }
+
+.weightCol { display: flex; flex-direction: column; gap: 3px; }
+.weightLabel {
+  font-size: 10px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.weightDiff {
+  font-size: 13px; font-weight: 700; color: var(--warning);
+  background: var(--warning-soft); border-radius: var(--radius-sm);
+  text-align: center; min-height: 34px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.unitDisplay {
+  font-size: 12px; color: var(--text-muted); font-weight: 600;
+  display: flex; align-items: center; min-height: 36px; padding: 0 4px;
+}
 
 .removeItem {
   background: transparent; border: none; color: var(--danger);
   cursor: pointer; font-size: 14px; padding: 4px;
-  border-radius: var(--radius-sm); transition: background var(--transition); margin-top: 8px;
+  border-radius: var(--radius-sm); transition: background var(--transition);
 }
 .removeItem:hover { background: var(--danger-soft); }
 
+/* ── Detail modal ── */
 .detailBody  { display: flex; flex-direction: column; gap: 12px; }
 .detailGrid  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .detailNotes { font-size: 13px; color: var(--text-secondary); font-style: italic; }
@@ -54,9 +107,11 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
+  .categoryPick { grid-template-columns: 1fr; max-width: 100%; margin: 24px 0; }
   .filters { padding: 12px 14px 0; gap: 10px; }
   .formGrid2 { grid-template-columns: 1fr; }
-  .itemRow { grid-template-columns: 1fr 100px 100px 32px; }
+  .itemRow { grid-template-columns: 1fr 80px 90px 70px 28px; }
+  .itemRowWeight { grid-template-columns: 1fr 75px 75px 65px 32px; }
 }
 
 @media (max-width: 480px) {

@@ -8,8 +8,8 @@ import { useWarehouse } from '@/lib/warehouse-context'
 import { useSession } from '@/lib/session-context'
 import { Combobox } from '@/components/ui/Combobox'
 import { entriesApi, productsApi, settingsApi } from '@/lib/api/client'
-import { formatDate, formatNumber, formatCurrency } from '@/utils/formatters'
-import type { PurchaseEntry, Product, CreateEntryItemInput, AuditLogEntry } from '@/types'
+import { formatDate, formatNumber, formatCurrency, formatDualUnit } from '@/utils/formatters'
+import type { PurchaseEntry, Product, CreateEntryItemInput, AuditLogEntry, EntryMode } from '@/types'
 import styles from './entradas.module.css'
 
 interface ItemRow extends Omit<CreateEntryItemInput, 'product_id'> {
@@ -33,6 +33,7 @@ export default function EntradasPage() {
   const [entries, setEntries] = useState<PurchaseEntry[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [ivaDefault, setIvaDefault] = useState(19)
+  const [defaultMode, setDefaultMode] = useState<EntryMode>('total_only')
   const [dateFrom, setDateFrom]   = useState('')
   const [dateTo, setDateTo]       = useState('')
   const [folioSearch, setFolioSearch] = useState('')
@@ -44,6 +45,9 @@ export default function EntradasPage() {
   const [items, setItems]             = useState<ItemRow[]>([])
   const [nextKey, setNextKey]         = useState(0)
   const [formTouched, setFormTouched] = useState(false)
+  const [entryMode, setEntryMode]     = useState<EntryMode>('total_only')
+  const [invoiceTotalDisplay, setInvoiceTotalDisplay] = useState('')
+  const [invoiceTotal, setInvoiceTotal] = useState(0)
   const [confirmConfig, setConfirmConfig] = useState<{
     message: string
     confirmLabel?: string
@@ -76,7 +80,8 @@ export default function EntradasPage() {
   }, [warehouse.id])
   useEffect(() => {
     settingsApi.get().then(s => {
-      if (s.iva_rate_default) setIvaDefault(Number(s.iva_rate_default))
+      if (s.iva_rate_default)    setIvaDefault(Number(s.iva_rate_default))
+      if (s.entry_mode_default)  setDefaultMode(s.entry_mode_default as EntryMode)
     })
   }, [])
 
@@ -105,6 +110,16 @@ export default function EntradasPage() {
     })
   }
 
+  function handleInvoiceTotalChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const rawValue = e.target.value
+    const digitsOnly = rawValue.replace(/[^\d]/g, '')
+    const num = digitsOnly ? parseInt(digitsOnly, 10) : 0
+    const formatted = num > 0 ? formatCurrency(num) : ''
+    setInvoiceTotal(num)
+    setInvoiceTotalDisplay(formatted)
+    setFormTouched(true)
+  }
+
   function addItem() {
     setItems(prev => [...prev, { key: nextKey, product_id: 0, quantity: 0, unit: '', applies_iva: true, iva_rate: ivaDefault, line_total: 0, line_total_display: '' }])
     setNextKey(k => k + 1)
@@ -122,7 +137,10 @@ export default function EntradasPage() {
       if (i.key !== key) return i
       if (field === 'product_id') {
         const p = products.find(p => p.id === Number(value))
-        return { ...i, product_id: Number(value), unit: p?.visual_unit ?? i.unit, product_name: p?.name }
+        const defaultUnit = p
+          ? (p.unit_entry_default === 'base' ? p.base_unit : p.visual_unit)
+          : i.unit
+        return { ...i, product_id: Number(value), unit: defaultUnit, product_name: p?.name }
       }
       if (field === 'applies_iva') {
         return { ...i, applies_iva: Boolean(value), iva_rate: value ? ivaDefault : 0 }
@@ -141,6 +159,9 @@ export default function EntradasPage() {
     setNextKey(0)
     setError('')
     setFormTouched(false)
+    setEntryMode(defaultMode)
+    setInvoiceTotal(0)
+    setInvoiceTotalDisplay('')
     setModalOpen(true)
   }
 
@@ -148,6 +169,9 @@ export default function EntradasPage() {
     setEditingEntry(entry)
     setError('')
     setFormTouched(false)
+    setEntryMode(entry.entry_mode ?? defaultMode)
+    setInvoiceTotal(entry.total)
+    setInvoiceTotalDisplay(entry.total > 0 ? formatCurrency(entry.total) : '')
     if (entry.items) {
       setItems(entry.items.map((item, idx) => ({
         key:                idx,
@@ -209,6 +233,9 @@ export default function EntradasPage() {
     if (items.some(i => !i.product_id || !i.quantity || !i.unit)) {
       setError('Completa todos los campos de cada producto'); return
     }
+    if (entryMode === 'total_only' && invoiceTotal <= 0) {
+      setError('Ingresa el total de la factura'); return
+    }
 
     const msg = editingEntry ? '¿Confirmar los cambios en esta entrada?' : '¿Confirmar el registro de esta entrada?'
     const ok  = await showConfirm(msg, editingEntry ? 'Guardar cambios' : 'Registrar entrada')
@@ -220,13 +247,15 @@ export default function EntradasPage() {
       supplier_name:  String(fd.get('supplier_name')  || '') || undefined,
       responsible:    String(fd.get('responsible')    || '') || undefined,
       notes:          String(fd.get('notes')          || '') || undefined,
+      entry_mode:     entryMode,
+      invoice_total:  entryMode === 'total_only' ? invoiceTotal : undefined,
       items: items.map(i => ({
         product_id:  i.product_id,
         quantity:    i.quantity,
         unit:        i.unit,
-        applies_iva: i.applies_iva,
-        iva_rate:    i.applies_iva ? i.iva_rate : 0,
-        line_total:  i.line_total,
+        applies_iva: entryMode === 'detailed' ? i.applies_iva : false,
+        iva_rate:    entryMode === 'detailed' && i.applies_iva ? i.iva_rate : 0,
+        line_total:  entryMode === 'detailed' ? i.line_total : 0,
         notes:       undefined as string | undefined,
       })),
     }
@@ -270,6 +299,12 @@ export default function EntradasPage() {
             { key: 'invoice_number', header: 'Folio',      render: r => r.invoice_number ?? '—' },
             { key: 'supplier_name',  header: 'Proveedor',  render: r => r.supplier_name  ?? '—' },
             { key: 'responsible',    header: 'Responsable', render: r => r.responsible  ?? '—' },
+            { key: 'entry_mode',     header: 'Modo',
+              render: r => (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  {r.entry_mode === 'total_only' ? 'Solo total' : 'Detallado'}
+                </span>
+              )},
             { key: 'total',          header: 'Total',      align: 'right',
               render: r => r.total > 0 ? `$${formatCurrency(r.total)}` : '—' },
             { key: 'item_count',     header: 'Productos',  align: 'right',
@@ -305,6 +340,25 @@ export default function EntradasPage() {
       >
         <form id="entry-form" onSubmit={handleSubmit} onInput={() => setFormTouched(true)} className={styles.form}>
           {error && <div className={styles.formError}>{error}</div>}
+
+          {/* ── Toggle de modo ── */}
+          <div className={styles.modeToggle}>
+            <span className={styles.modeLabel}>Modo de registro:</span>
+            <label className={`${styles.modeOption} ${entryMode === 'total_only' ? styles.modeActive : ''}`}>
+              <input type="radio" name="mode_selector" value="total_only"
+                checked={entryMode === 'total_only'}
+                onChange={() => { setEntryMode('total_only'); setFormTouched(true) }} />
+              Solo totalizar
+              <span className={styles.modeHint}>Cantidades + total de la factura</span>
+            </label>
+            <label className={`${styles.modeOption} ${entryMode === 'detailed' ? styles.modeActive : ''}`}>
+              <input type="radio" name="mode_selector" value="detailed"
+                checked={entryMode === 'detailed'}
+                onChange={() => { setEntryMode('detailed'); setFormTouched(true) }} />
+              Detallar precios
+              <span className={styles.modeHint}>Precio por cada producto + IVA</span>
+            </label>
+          </div>
 
           <div className={styles.formGrid2}>
             <div>
@@ -347,7 +401,7 @@ export default function EntradasPage() {
             {items.length === 0 && <p className={styles.emptyItems}>Agrega al menos un producto</p>}
 
             <div className={styles.itemsGrid}>
-              {items.length > 0 && (
+              {entryMode === 'detailed' && items.length > 0 && (
                 <div className={styles.itemsHeaderRow}>
                   <span>Producto</span>
                   <span>Cantidad</span>
@@ -359,10 +413,19 @@ export default function EntradasPage() {
                   <span />
                 </div>
               )}
+              {entryMode === 'total_only' && items.length > 0 && (
+                <div className={styles.itemsHeaderRowSimple}>
+                  <span>Producto</span>
+                  <span>Cantidad</span>
+                  <span>Unidad</span>
+                  <span />
+                </div>
+              )}
+
               {items.map(item => {
                 const ivaAmount = item.applies_iva ? item.line_total * item.iva_rate / 100 : 0
                 return (
-                  <div key={item.key} className={styles.itemRow}>
+                  <div key={item.key} className={entryMode === 'detailed' ? styles.itemRow : styles.itemRowSimple}>
                     <Combobox
                       options={products.map(p => ({ value: p.id, label: p.name }))}
                       value={item.product_id || ''}
@@ -374,31 +437,46 @@ export default function EntradasPage() {
                       value={item.quantity || ''}
                       onChange={e => updateItem(item.key, 'quantity', e.target.value)} />
 
-                    <input placeholder="Unidad" required value={item.unit}
-                      onChange={e => updateItem(item.key, 'unit', e.target.value)} />
+                    {(() => {
+                      const prod = products.find(p => p.id === item.product_id)
+                      const hasConv = prod && prod.conversion_factor > 1 && prod.base_unit !== prod.visual_unit
+                      if (!prod) return <span style={{padding:'0 8px',color:'var(--text-muted)',fontSize:12}}>—</span>
+                      if (!hasConv) return <span style={{padding:'0 8px',fontSize:13,fontWeight:600}}>{prod.visual_unit}</span>
+                      return (
+                        <select value={item.unit} onChange={e => updateItem(item.key, 'unit', e.target.value)}
+                          style={{minWidth:90}}>
+                          <option value={prod.visual_unit}>{prod.visual_unit}</option>
+                          <option value={prod.base_unit}>{prod.base_unit}</option>
+                        </select>
+                      )
+                    })()}
 
-                    <label className={styles.ivaCheck}>
-                      <input type="checkbox" checked={item.applies_iva}
-                        onChange={e => updateItem(item.key, 'applies_iva', e.target.checked)} />
-                      IVA
-                    </label>
+                    {entryMode === 'detailed' && (
+                      <>
+                        <label className={styles.ivaCheck}>
+                          <input type="checkbox" checked={item.applies_iva}
+                            onChange={e => updateItem(item.key, 'applies_iva', e.target.checked)} />
+                          IVA
+                        </label>
 
-                    <input type="number" min="0" max="100" step="any"
-                      value={item.applies_iva ? item.iva_rate : ''}
-                      disabled={!item.applies_iva}
-                      onChange={e => updateItem(item.key, 'iva_rate', e.target.value)}
-                      style={{textAlign:'right'}} />
+                        <input type="number" min="0" max="100" step="any"
+                          value={item.applies_iva ? item.iva_rate : ''}
+                          disabled={!item.applies_iva}
+                          onChange={e => updateItem(item.key, 'iva_rate', e.target.value)}
+                          style={{textAlign:'right'}} />
 
-                    <div className={styles.ivaAmount}>
-                      {item.applies_iva && item.line_total > 0
-                        ? `$${formatCurrency(ivaAmount)}`
-                        : '—'}
-                    </div>
+                        <div className={styles.ivaAmount}>
+                          {item.applies_iva && item.line_total > 0
+                            ? `$${formatCurrency(ivaAmount)}`
+                            : '—'}
+                        </div>
 
-                    <input type="text" inputMode="numeric" placeholder="0"
-                      value={item.line_total_display}
-                      onChange={e => handleLineTotalChange(item.key, e)}
-                      style={{textAlign:'right'}} />
+                        <input type="text" inputMode="numeric" placeholder="0"
+                          value={item.line_total_display}
+                          onChange={e => handleLineTotalChange(item.key, e)}
+                          style={{textAlign:'right'}} />
+                      </>
+                    )}
 
                     <button type="button" className={styles.removeItem}
                       onClick={() => removeItem(item.key)}>✕</button>
@@ -407,11 +485,27 @@ export default function EntradasPage() {
               })}
             </div>
 
-            {items.length > 0 && (
+            {entryMode === 'detailed' && items.length > 0 && (
               <div className={styles.totalsRow}>
                 <span>Subtotal: <strong>${formatCurrency(subtotal)}</strong></span>
                 <span>IVA: <strong>${formatCurrency(ivaTotal)}</strong></span>
                 <span className={styles.totalFinal}>Total: <strong>${formatCurrency(totalCalc)}</strong></span>
+              </div>
+            )}
+
+            {entryMode === 'total_only' && items.length > 0 && (
+              <div className={styles.invoiceTotalRow}>
+                <label className={styles.label}>Total de la factura (con IVA incluido) *</label>
+                <div className={styles.invoiceTotalInput}>
+                  <span className={styles.invoiceTotalPrefix}>$</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={invoiceTotalDisplay}
+                    onChange={handleInvoiceTotalChange}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -453,6 +547,9 @@ export default function EntradasPage() {
               <div><span className={styles.label}>Proveedor</span><p>{detailEntry.supplier_name ?? '—'}</p></div>
               <div><span className={styles.label}>Responsable</span><p>{detailEntry.responsible ?? '—'}</p></div>
             </div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:4}}>
+              Modo: {detailEntry.entry_mode === 'total_only' ? 'Solo totalizar' : 'Detallado'}
+            </div>
             {detailEntry.notes && <p className={styles.detailNotes}>{detailEntry.notes}</p>}
 
             <h3 style={{ marginTop: 16, marginBottom: 8 }}>Productos</h3>
@@ -460,8 +557,15 @@ export default function EntradasPage() {
               <div key={i} className={styles.detailItem}>
                 <span>{item.product_name ?? `Producto #${item.product_id}`}</span>
                 <div style={{textAlign:'right'}}>
-                  <strong>{formatNumber(item.quantity)} {item.unit}</strong>
-                  {item.line_total > 0 && (
+                  <strong>
+                    {formatDualUnit(
+                      item.quantity,
+                      item.base_unit ?? item.unit,
+                      item.visual_unit ?? item.unit,
+                      item.conversion_factor ?? 1,
+                    )}
+                  </strong>
+                  {detailEntry.entry_mode !== 'total_only' && item.line_total > 0 && (
                     <div style={{fontSize:12, color:'var(--text-muted)'}}>
                       ${formatCurrency(item.line_total)}
                       {item.applies_iva && ` + IVA ${item.iva_rate}%`}
@@ -473,9 +577,15 @@ export default function EntradasPage() {
 
             {detailEntry.total > 0 && (
               <div className={styles.detailTotals}>
-                <span>Subtotal: ${formatCurrency(detailEntry.subtotal)}</span>
-                <span>IVA: ${formatCurrency(detailEntry.iva_total)}</span>
-                <strong>Total: ${formatCurrency(detailEntry.total)}</strong>
+                {detailEntry.entry_mode === 'total_only' ? (
+                  <strong>Total factura: ${formatCurrency(detailEntry.total)}</strong>
+                ) : (
+                  <>
+                    <span>Subtotal: ${formatCurrency(detailEntry.subtotal)}</span>
+                    <span>IVA: ${formatCurrency(detailEntry.iva_total)}</span>
+                    <strong>Total: ${formatCurrency(detailEntry.total)}</strong>
+                  </>
+                )}
               </div>
             )}
 

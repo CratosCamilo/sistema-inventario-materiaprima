@@ -37,14 +37,15 @@ Ver [`PROGRESS.md`](./PROGRESS.md) para la checklist detallada.
 ## Alcance del sistema
 
 **Lo que SÍ incluye (v1 + v2 completados):**
-- Registro de productos / materias primas
+- Registro de productos / materias primas con sistema de **doble unidad** (unidad visual + unidad base + factor de conversión)
 - Inventario inicial
 - Entradas de materia prima (con folio/factura obligatorio, IVA por línea, auditoría de ediciones)
 - Salidas de materia prima (a producción, empaque, punto de venta, otra)
-- Stock actual con estados visuales: normal / bajo / crítico
+- Stock actual con estados visuales: normal / bajo / crítico; muestra ambas unidades simultáneamente con toggle por clic
 - Alertas de stock mínimo
 - Ajustes / conteo físico
-- Reportes (stock, bajo mínimo, entradas, salidas, ajustes, movimientos, ediciones de facturas)
+- Reportes: stock, bajo mínimo, entradas por producto, salidas por producto, facturas por fecha, ajustes por producto, historial de movimientos, ediciones de facturas
+- Exportación Excel (.xlsx) y PDF para todos los reportes; balance de entradas/salidas/ajustes en dos hojas (Producción + Empaques)
 - Configuración (nombre empresa, IVA por defecto)
 - Login con JWT y roles de acceso
 - Dos bodegas (Panadería y Pastelería)
@@ -55,7 +56,6 @@ Ver [`PROGRESS.md`](./PROGRESS.md) para la checklist detallada.
 - Integración con DIAN
 - Costeo / recetas automáticas
 - Facturación / ventas
-- Exportación PDF (Excel .xlsx ya implementado)
 - Control de pan terminado (es otro sistema separado)
 
 **Roles:**
@@ -74,7 +74,7 @@ Ver [`PROGRESS.md`](./PROGRESS.md) para la checklist detallada.
 |-------|-------------|
 | `users` | Usuarios con roles y hash de contraseña |
 | `warehouses` | Bodegas (Panadería id=1, Pastelería id=2) |
-| `products` | Materias primas. Incluye `stock_current`, `stock_minimum`, `initial_stock_loaded`, `active`, `category` (Produccion/Empaques) |
+| `products` | Materias primas. Incluye `stock_current`, `stock_minimum`, `initial_stock_loaded`, `active`, `category` (Produccion/Empaques), `base_unit`, `visual_unit`, `conversion_factor`, `unit_entry_default`, `unit_exit_default` |
 | `inventory_movements` | Historial central. `type`: `initial\|entry\|exit\|adjustment`. `direction`: `in\|out\|adjustment` |
 | `purchase_entries` | Cabecera de cada entrada (con `invoice_number` obligatorio, `subtotal`, `iva_total`, `total`, auditoría) |
 | `purchase_entry_items` | Líneas de entrada con `applies_iva`, `iva_rate`, `line_total`, `iva_amount` |

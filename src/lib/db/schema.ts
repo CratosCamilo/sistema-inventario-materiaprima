@@ -35,7 +35,10 @@ export const products = sqliteTable('products', {
   conversion_factor:    real('conversion_factor').notNull().default(1),
   stock_minimum:        real('stock_minimum').notNull().default(0),
   stock_current:        real('stock_current').notNull().default(0),
+  unit_entry_default:   text('unit_entry_default').notNull().default('visual'),
+  unit_exit_default:    text('unit_exit_default').notNull().default('visual'),
   initial_stock_loaded: integer('initial_stock_loaded', { mode: 'boolean' }).notNull().default(false),
+  weight_based:         integer('weight_based', { mode: 'boolean' }).notNull().default(false),
   active:               integer('active', { mode: 'boolean' }).notNull().default(true),
   notes:                text('notes'),
   created_at:           text('created_at').notNull().default(now),
@@ -51,6 +54,7 @@ export const purchase_entries = sqliteTable('purchase_entries', {
   supplier_name:   text('supplier_name'),
   responsible:     text('responsible'),
   notes:           text('notes'),
+  entry_mode:      text('entry_mode', { enum: ['detailed', 'total_only'] }).notNull().default('detailed'),
   subtotal:        real('subtotal').notNull().default(0),
   iva_total:       real('iva_total').notNull().default(0),
   total:           real('total').notNull().default(0),
@@ -103,10 +107,26 @@ export const exit_items = sqliteTable('exit_items', {
   notes:      text('notes'),
 })
 
+// ── Adjustment Batches ────────────────────────────────────────────────────────
+export const adjustment_batches = sqliteTable('adjustment_batches', {
+  id:              integer('id').primaryKey({ autoIncrement: true }),
+  warehouse_id:    integer('warehouse_id').notNull().references(() => warehouses.id),
+  date:            text('date').notNull(),
+  category:        text('category', { enum: ['Produccion', 'Empaques'] }).notNull(),
+  notes:           text('notes'),
+  responsible:     text('responsible'),
+  status:          text('status', { enum: ['active', 'cancelled'] }).notNull().default('active'),
+  created_by_id:   integer('created_by_id').references(() => users.id),
+  created_by_name: text('created_by_name'),
+  created_at:      text('created_at').notNull().default(now),
+  updated_at:      text('updated_at').notNull().default(now),
+})
+
 // ── Stock Adjustments ─────────────────────────────────────────────────────────
 export const stock_adjustments = sqliteTable('stock_adjustments', {
   id:              integer('id').primaryKey({ autoIncrement: true }),
   warehouse_id:    integer('warehouse_id').notNull().references(() => warehouses.id),
+  batch_id:        integer('batch_id').references(() => adjustment_batches.id),
   date:            text('date').notNull(),
   product_id:      integer('product_id').notNull().references(() => products.id),
   stock_system:    real('stock_system').notNull(),

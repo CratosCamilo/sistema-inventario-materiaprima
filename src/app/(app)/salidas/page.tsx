@@ -4,36 +4,39 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Table } from '@/components/ui/Table'
 import { Modal } from '@/components/ui/Modal'
+import { Combobox } from '@/components/ui/Combobox'
 import { useWarehouse } from '@/lib/warehouse-context'
 import { useSession } from '@/lib/session-context'
 import { exitsApi, productsApi } from '@/lib/api/client'
-import { formatDate, formatNumber, DESTINATION_LABELS } from '@/utils/formatters'
-import type { Exit, Product, CreateExitItemInput, ExitDestination } from '@/types'
+import { formatDate, formatNumber, DESTINATION_LABELS, toVisual, formatDualUnit } from '@/utils/formatters'
+import type { Exit, Product, CreateExitItemInput, ExitDestination, ProductCategory } from '@/types'
 import styles from './salidas.module.css'
 
-interface ItemRow extends CreateExitItemInput { key: number }
+interface ItemRow extends CreateExitItemInput {
+  key: number
+  weight_initial?: number
+  weight_final?: number
+}
 
-const DESTINATIONS: { value: ExitDestination; label: string }[] = [
-  { value: 'produccion',  label: 'Producción' },
-  { value: 'empaque',     label: 'Empaque' },
-  { value: 'punto_venta', label: 'Punto de venta' },
-  { value: 'otra',        label: 'Otra' },
-]
+type PageStep = 'list' | 'pick_category'
 
 export default function SalidasPage() {
   const { warehouse } = useWarehouse()
   const session       = useSession()
   const isAdmin       = session.role === 'admin'
-  const [exits, setExits]       = useState<Exit[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo]     = useState('')
+
+  const [exits, setExits]           = useState<Exit[]>([])
+  const [products, setProducts]     = useState<Product[]>([])
+  const [dateFrom, setDateFrom]     = useState('')
+  const [dateTo, setDateTo]         = useState('')
+  const [step, setStep]             = useState<PageStep>('list')
+  const [exitCategory, setExitCategory] = useState<ProductCategory>('Produccion')
   const [modalOpen, setModalOpen]   = useState(false)
   const [detailExit, setDetailExit] = useState<Exit | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [error, setError]   = useState('')
-  const [items, setItems]   = useState<ItemRow[]>([])
-  const [nextKey, setNextKey] = useState(0)
+  const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState('')
+  const [items, setItems]           = useState<ItemRow[]>([])
+  const [nextKey, setNextKey]       = useState(0)
   const [confirmConfig, setConfirmConfig] = useState<{
     message: string
     confirmLabel?: string
@@ -62,6 +65,8 @@ export default function SalidasPage() {
     productsApi.list(warehouse.id).then(d => setProducts(d.filter(p => p.active)))
   }, [warehouse.id])
 
+  const categoryProducts = products.filter(p => p.category === exitCategory)
+
   function addItem() {
     setItems(prev => [...prev, { key: nextKey, product_id: 0, quantity: 0, unit: '' }])
     setNextKey(k => k + 1)
@@ -73,14 +78,42 @@ export default function SalidasPage() {
       if (i.key !== key) return i
       if (field === 'product_id') {
         const p = products.find(p => p.id === Number(value))
-        return { ...i, product_id: Number(value), unit: p?.visual_unit ?? i.unit }
+        const defaultUnit = p?.weight_based
+          ? p.base_unit
+          : p
+            ? (p.unit_exit_default === 'base' ? p.base_unit : p.visual_unit)
+            : i.unit
+        return { ...i, product_id: Number(value), unit: defaultUnit, weight_initial: undefined, weight_final: undefined }
+      }
+      if (field === 'weight_initial') {
+        const wi = Number(value)
+        const wf = i.weight_final ?? 0
+        return { ...i, weight_initial: wi, quantity: Math.max(0, wi - wf) }
+      }
+      if (field === 'weight_final') {
+        const wi = i.weight_initial ?? 0
+        const wf = Number(value)
+        return { ...i, weight_final: wf, quantity: Math.max(0, wi - wf) }
       }
       return { ...i, [field]: field === 'quantity' ? Number(value) : value }
     }))
   }
 
-  function openCreate() { setItems([]); setNextKey(0); setError(''); setModalOpen(true) }
-  function closeModal()  { setModalOpen(false) }
+  function openCreate() {
+    setError('')
+    setStep('pick_category')
+  }
+
+  function pickCategory(cat: ProductCategory) {
+    setExitCategory(cat)
+    setItems([])
+    setNextKey(0)
+    setError('')
+    setStep('list')
+    setModalOpen(true)
+  }
+
+  function closeModal() { setModalOpen(false) }
 
   async function openDetail(ex: Exit) {
     const full = await exitsApi.get(ex.id)
@@ -105,16 +138,35 @@ export default function SalidasPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (items.length === 0) { setError('Agrega al menos un producto'); return }
-    if (items.some(i => !i.product_id || !i.quantity || !i.unit)) {
-      setError('Completa todos los campos de cada producto'); return
+
+    for (const i of items) {
+      const prod = products.find(p => p.id === i.product_id)
+      if (!i.product_id) { setError('Selecciona el producto de cada fila'); return }
+      if (prod?.weight_based) {
+        if ((i.weight_initial ?? 0) <= 0) {
+          setError(`Ingresa el peso inicial en "${prod.name}"`); return
+        }
+        if ((i.weight_initial ?? 0) <= (i.weight_final ?? 0)) {
+          setError(`El peso inicial debe ser mayor al peso final en "${prod.name}"`); return
+        }
+      } else {
+        if (!i.quantity) { setError('Completa la cantidad de cada producto'); return }
+      }
     }
+
     const fd = new FormData(e.currentTarget)
     const input = {
       date:        String(fd.get('date')),
-      destination: String(fd.get('destination')) as ExitDestination,
+      destination: (exitCategory === 'Produccion' ? 'produccion' : 'empaque') as ExitDestination,
       responsible: String(fd.get('responsible') || '') || undefined,
       notes:       String(fd.get('notes')       || '') || undefined,
-      items: items.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit: i.unit })),
+      items: items.map(i => {
+        const prod = products.find(p => p.id === i.product_id)
+        const notes = prod?.weight_based && i.weight_initial !== undefined && i.weight_final !== undefined
+          ? `Peso inicial: ${formatNumber(i.weight_initial)} kg — Peso final: ${formatNumber(i.weight_final)} kg`
+          : undefined
+        return { product_id: i.product_id, quantity: i.quantity, unit: prod?.weight_based ? 'kg' : i.unit, notes }
+      }),
     }
     setSaving(true); setError('')
     try {
@@ -125,6 +177,34 @@ export default function SalidasPage() {
     } finally { setSaving(false) }
   }
 
+  // ── Pick category step ──
+  if (step === 'pick_category') {
+    return (
+      <div className={styles.page}>
+        <div className={styles.header}>
+          <div>
+            <h1>Registrar salida</h1>
+            <p>¿A qué área va la materia prima? — {warehouse.name}</p>
+          </div>
+          <Button variant="ghost" onClick={() => setStep('list')}>← Cancelar</Button>
+        </div>
+        <div className={styles.categoryPick}>
+          <button className={styles.categoryCard} onClick={() => pickCategory('Produccion')}>
+            <span className={styles.categoryIcon}>🍞</span>
+            <strong>Producción</strong>
+            <span>{products.filter(p => p.category === 'Produccion').length} productos disponibles</span>
+          </button>
+          <button className={styles.categoryCard} onClick={() => pickCategory('Empaques')}>
+            <span className={styles.categoryIcon}>📦</span>
+            <strong>Empaques</strong>
+            <span>{products.filter(p => p.category === 'Empaques').length} productos disponibles</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── List step ──
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -164,7 +244,12 @@ export default function SalidasPage() {
         />
       </Card>
 
-      <Modal open={modalOpen} title="Registrar salida" onClose={closeModal} size="lg"
+      {/* ── Modal registrar salida ── */}
+      <Modal
+        open={modalOpen}
+        title={`Salida — ${exitCategory === 'Produccion' ? 'Producción' : 'Empaques'}`}
+        onClose={closeModal}
+        size="lg"
         footer={
           <>
             <Button variant="ghost" onClick={closeModal}>Cancelar</Button>
@@ -181,11 +266,10 @@ export default function SalidasPage() {
               <input name="date" type="date" required defaultValue={new Date().toISOString().slice(0,10)} />
             </div>
             <div>
-              <label className={styles.label}>Destino *</label>
-              <select name="destination" required defaultValue="">
-                <option value="" disabled>Seleccionar...</option>
-                {DESTINATIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-              </select>
+              <label className={styles.label}>Destino</label>
+              <p className={styles.destinoDisplay}>
+                {exitCategory === 'Produccion' ? '🍞 Producción' : '📦 Empaques'}
+              </p>
             </div>
           </div>
 
@@ -209,21 +293,85 @@ export default function SalidasPage() {
 
             {items.map(item => {
               const prod = products.find(p => p.id === item.product_id)
+              const isWeightBased = prod?.weight_based ?? false
+
               return (
-                <div key={item.key} className={styles.itemRow}>
-                  <div>
-                    <select value={item.product_id || ''} required
-                      onChange={e => updateItem(item.key, 'product_id', e.target.value)}>
-                      <option value="">Seleccionar producto...</option>
-                      {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                    {prod && <span className={styles.stockInfo}>Stock: {formatNumber(prod.stock_current)} {prod.visual_unit}</span>}
+                <div key={item.key} className={`${styles.itemRow} ${isWeightBased ? styles.itemRowWeight : ''}`}>
+                  {/* Columna producto */}
+                  <Combobox
+                    options={categoryProducts.map(p => ({
+                      value: p.id,
+                      label: p.name + (p.weight_based ? ' ⚖' : ''),
+                    }))}
+                    value={item.product_id || ''}
+                    onChange={v => updateItem(item.key, 'product_id', v)}
+                    placeholder="Buscar producto..."
+                  />
+
+                  {/* Columna stock actual */}
+                  <div className={styles.stockCol}>
+                    {prod ? (
+                      <>
+                        <span className={styles.stockColNum}>
+                          {isWeightBased
+                            ? formatNumber(prod.stock_current)
+                            : formatNumber(toVisual(prod.stock_current, prod.conversion_factor ?? 1))}
+                        </span>
+                        <span className={styles.stockColUnit}>
+                          {isWeightBased
+                            ? <span className={styles.weightBadge}>⚖ {prod.base_unit}</span>
+                            : prod.visual_unit}
+                        </span>
+                      </>
+                    ) : null}
                   </div>
-                  <input type="number" min="0.01" step="any" placeholder="Cantidad" required
-                    value={item.quantity || ''}
-                    onChange={e => updateItem(item.key, 'quantity', e.target.value)} />
-                  <input placeholder="Unidad" required value={item.unit}
-                    onChange={e => updateItem(item.key, 'unit', e.target.value)} />
+
+                  {isWeightBased ? (
+                    <>
+                      <div className={styles.weightCol}>
+                        <label className={styles.weightLabel}>Inicio (kg)</label>
+                        <input type="number" min="0" step="any" placeholder="0"
+                          value={item.weight_initial ?? ''}
+                          onChange={e => updateItem(item.key, 'weight_initial', e.target.value)} />
+                      </div>
+                      <div className={styles.weightCol}>
+                        <label className={styles.weightLabel}>Final (kg)</label>
+                        <input type="number" min="0" step="any" placeholder="0"
+                          value={item.weight_final ?? ''}
+                          onChange={e => updateItem(item.key, 'weight_final', e.target.value)} />
+                      </div>
+                      <div className={styles.weightCol}>
+                        <label className={styles.weightLabel}>Diferencia</label>
+                        <span className={styles.weightDiff}>
+                          {item.quantity > 0 ? `${formatNumber(item.quantity)} kg` : '—'}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <input type="number" min="0.01" step="any" placeholder="Cantidad"
+                        value={item.quantity || ''}
+                        onChange={e => updateItem(item.key, 'quantity', e.target.value)} />
+                      {(() => {
+                        if (!prod) return null
+                        const hasConv = (prod.conversion_factor ?? 1) > 1 && prod.base_unit !== prod.visual_unit
+                        if (!hasConv) return (
+                          <span style={{padding:'0 6px',fontSize:13,fontWeight:600,color:'var(--text-muted)'}}>
+                            {prod.visual_unit}
+                          </span>
+                        )
+                        return (
+                          <select value={item.unit}
+                            onChange={e => updateItem(item.key, 'unit', e.target.value)}
+                            style={{minWidth:90}}>
+                            <option value={prod.visual_unit}>{prod.visual_unit}</option>
+                            <option value={prod.base_unit}>{prod.base_unit}</option>
+                          </select>
+                        )
+                      })()}
+                    </>
+                  )}
+
                   <button type="button" className={styles.removeItem} onClick={() => removeItem(item.key)}>✕</button>
                 </div>
               )
@@ -232,6 +380,7 @@ export default function SalidasPage() {
         </form>
       </Modal>
 
+      {/* ── Modal detalle ── */}
       <Modal open={!!detailExit} title="Detalle de salida" onClose={() => setDetailExit(null)} size="md"
         footer={
           <>
@@ -259,7 +408,17 @@ export default function SalidasPage() {
             {detailExit.items?.map((item, i) => (
               <div key={i} className={styles.detailItem}>
                 <span>{item.product_name ?? `Producto #${item.product_id}`}</span>
-                <strong>{formatNumber(item.quantity)} {item.unit}</strong>
+                <div style={{textAlign:'right'}}>
+                  <strong>
+                    {formatDualUnit(
+                      item.quantity,
+                      item.base_unit ?? item.unit,
+                      item.visual_unit ?? item.unit,
+                      item.conversion_factor ?? 1,
+                    )}
+                  </strong>
+                  {item.notes && <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>{item.notes}</div>}
+                </div>
               </div>
             ))}
           </div>

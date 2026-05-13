@@ -40,7 +40,10 @@ export interface Product {
   conversion_factor: number
   stock_minimum: number
   stock_current: number
+  unit_entry_default: 'visual' | 'base'
+  unit_exit_default: 'visual' | 'base'
   initial_stock_loaded: boolean
+  weight_based: boolean
   active: boolean
   notes: string | null
   created_at: string
@@ -53,7 +56,10 @@ export interface CreateProductInput {
   base_unit: string
   visual_unit: string
   conversion_factor?: number
+  unit_entry_default?: 'visual' | 'base'
+  unit_exit_default?: 'visual' | 'base'
   stock_minimum: number
+  weight_based?: boolean
   notes?: string
 }
 
@@ -84,6 +90,7 @@ export interface InventoryMovement {
 
 // ── Purchase Entries ──────────────────────────────────────────────────────────
 export type EntryStatus = 'active' | 'cancelled'
+export type EntryMode = 'detailed' | 'total_only'
 
 export interface PurchaseEntryItem {
   id: number
@@ -92,6 +99,9 @@ export interface PurchaseEntryItem {
   product_name?: string
   quantity: number
   unit: string
+  visual_unit?: string
+  base_unit?: string
+  conversion_factor?: number
   applies_iva: boolean
   iva_rate: number
   line_total: number
@@ -107,6 +117,7 @@ export interface PurchaseEntry {
   supplier_name: string | null
   responsible: string | null
   notes: string | null
+  entry_mode: EntryMode
   subtotal: number
   iva_total: number
   total: number
@@ -138,6 +149,8 @@ export interface CreateEntryInput {
   supplier_name?: string
   responsible?: string
   notes?: string
+  entry_mode?: EntryMode
+  invoice_total?: number
   items: CreateEntryItemInput[]
 }
 
@@ -152,6 +165,9 @@ export interface ExitItem {
   product_name?: string
   quantity: number
   unit: string
+  visual_unit?: string
+  base_unit?: string
+  conversion_factor?: number
   notes: string | null
 }
 
@@ -192,10 +208,13 @@ export type AdjustmentStatus = 'active' | 'cancelled'
 export interface StockAdjustment {
   id: number
   warehouse_id: number
+  batch_id: number | null
   date: string
   product_id: number
   product_name?: string
   visual_unit?: string
+  base_unit?: string
+  conversion_factor?: number
   stock_system: number
   stock_physical: number
   difference: number
@@ -216,6 +235,30 @@ export interface CreateAdjustmentInput {
   reason?: string
   notes?: string
   responsible?: string
+}
+
+export interface AdjustmentBatch {
+  id: number
+  warehouse_id: number
+  date: string
+  category: ProductCategory
+  notes: string | null
+  responsible: string | null
+  status: AdjustmentStatus
+  created_by_id: number | null
+  created_by_name: string | null
+  created_at: string
+  updated_at: string
+  adjustments?: StockAdjustment[]
+  changed_count?: number
+}
+
+export interface CreateAdjustmentBatchInput {
+  date: string
+  category: ProductCategory
+  notes?: string
+  responsible?: string
+  items: { product_id: number; stock_physical: number }[]
 }
 
 // ── Initial Stock ─────────────────────────────────────────────────────────────
