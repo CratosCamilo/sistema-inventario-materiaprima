@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Manual de Uso — Sistema de Inventario de Materia Prima</title>
+<style>
+  /* ─────────────── RESET & BASE ─────────────── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  html, body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    color: #1a3536;
+    line-height: 1.55;
+    font-size: 11pt;
+    background: #fff;
+  }
+
+  /* ─────────────── COLORES ─────────────── */
+  :root {
+    --teal-900: #003d39;
+    --teal-700: #006a6b;
+    --teal-600: #007d7e;
+    --teal-500: #008788;
+    --cyan-500: #06b6d4;
+    --cyan-400: #22d3ee;
+    --cyan-100: #cffafe;
+    --cyan-50:  #ecfeff;
+    --warn:    #d97706;
+    --warn-bg: #fef3c7;
+    --danger:  #dc2626;
+    --danger-bg: #fee2e2;
+    --success: #059669;
+    --success-bg: #d1fae5;
+    --gray-700: #374151;
+    --gray-500: #6b7280;
+    --gray-300: #d1d5db;
+    --gray-100: #f3f4f6;
+    --gray-50:  #f9fafb;
+  }
+
+  /* ─────────────── TIPOGRAFÍA ─────────────── */
+  h1 {
+    font-size: 22pt;
+    color: var(--teal-700);
+    margin: 0 0 8px 0;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  h2 {
+    font-size: 16pt;
+    color: var(--teal-700);
+    margin: 18px 0 10px 0;
+    padding-bottom: 6px;
+    border-bottom: 3px solid var(--cyan-500);
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 13pt;
+    color: var(--teal-600);
+    margin: 16px 0 6px 0;
+    font-weight: 600;
+  }
+  h4 {
+    font-size: 11.5pt;
+    color: var(--gray-700);
+    margin: 12px 0 4px 0;
+    font-weight: 600;
+  }
+  p { margin: 6px 0; }
+  strong { color: var(--teal-900); font-weight: 600; }
+  ul, ol { margin: 6px 0 6px 22px; }
+  li { margin: 3px 0; }
+  code {
+    background: var(--cyan-50);
+    border: 1px solid var(--cyan-100);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Consolas', monospace;
+    font-size: 9.5pt;
+    color: var(--teal-700);
+  }
+
+  /* ─────────────── PORTADA ─────────────── */
+  .cover {
+    page-break-after: always;
+    height: 257mm;
+    background: linear-gradient(135deg, #006a6b 0%, #008788 60%, #06b6d4 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 40px 30px;
+    margin: -18mm -16mm;
+    position: relative;
+  }
+  .cover-tag {
+    text-transform: uppercase;
+    letter-spacing: 6px;
+    font-size: 11pt;
+    opacity: 0.85;
+    margin-bottom: 20px;
+  }
+  .cover h1.title {
+    color: white;
+    font-size: 38pt;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
+  .cover .subtitle {
+    font-size: 18pt;
+    opacity: 0.92;
+    margin-bottom: 35px;
+    font-weight: 300;
+  }
+  .cover .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 2px solid rgba(255,255,255,0.4);
+    padding: 10px 22px;
+    border-radius: 99px;
+    font-size: 11pt;
+    margin-top: 30px;
+    letter-spacing: 1px;
+  }
+  .cover .footer-info {
+    position: absolute;
+    bottom: 40px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 10pt;
+    opacity: 0.75;
+  }
+  .cover .icon-deco {
+    font-size: 60pt;
+    margin: 20px 0 10px 0;
+    opacity: 0.9;
+  }
+  .cover-logo {
+    width: 140px;
+    height: 140px;
+    background: white;
+    border-radius: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    padding: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+  .cover-logo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  /* ─────────────── SECCIONES ─────────────── */
+  .section {
+    page-break-before: always;
+  }
+  .section:first-of-type {
+    page-break-before: avoid;
+  }
+  .section-header {
+    background: var(--teal-700);
+    color: white;
+    padding: 14px 20px;
+    border-radius: 8px;
+    margin: 0 0 18px 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .section-header .num {
+    background: var(--cyan-400);
+    color: var(--teal-900);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16pt;
+    flex-shrink: 0;
+  }
+  .section-header h1 {
+    color: white;
+    font-size: 18pt;
+    margin: 0;
+  }
+  .section-header p {
+    color: rgba(255,255,255,0.85);
+    font-size: 10pt;
+    margin: 2px 0 0 0;
+  }
+
+  /* ─────────────── ÍNDICE ─────────────── */
+  .toc {
+    margin-top: 18px;
+  }
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 14px;
+    margin: 6px 0;
+    background: var(--gray-50);
+    border-left: 4px solid var(--cyan-500);
+    border-radius: 4px;
+  }
+  .toc-item .label { font-weight: 600; color: var(--teal-700); }
+  .toc-item .num { color: var(--gray-500); font-variant-numeric: tabular-nums; }
+  .toc-sub {
+    margin-left: 24px;
+    font-size: 10pt;
+    color: var(--gray-700);
+    padding: 3px 0;
+  }
+
+  /* ─────────────── CARDS / CAJAS ─────────────── */
+  .callout {
+    border-left: 5px solid var(--cyan-500);
+    background: var(--cyan-50);
+    padding: 11px 14px;
+    margin: 12px 0;
+    border-radius: 4px;
+    font-size: 10.5pt;
+  }
+  .callout strong { color: var(--teal-700); }
+  .callout.warn {
+    border-color: var(--warn);
+    background: var(--warn-bg);
+  }
+  .callout.warn strong { color: #92400e; }
+  .callout.danger {
+    border-color: var(--danger);
+    background: var(--danger-bg);
+  }
+  .callout.danger strong { color: #991b1b; }
+  .callout.success {
+    border-color: var(--success);
+    background: var(--success-bg);
+  }
+  .callout.success strong { color: #065f46; }
+
+  .callout-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    font-size: 9.5pt;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─────────────── IMÁGENES ─────────────── */
+  .screenshot {
+    margin: 14px 0;
+    page-break-inside: avoid;
+  }
+  .screenshot img {
+    max-width: 100%;
+    max-height: 170mm;
+    width: auto;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border: 1.5px solid var(--cyan-100);
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,106,107,0.10);
+    object-fit: contain;
+  }
+  .screenshot.tall img {
+    max-height: 200mm;
+    max-width: 70%;
+  }
+  .screenshot .caption {
+    font-size: 9pt;
+    color: var(--gray-500);
+    margin-top: 6px;
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* ─────────────── TABLAS ─────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 10pt;
+  }
+  th {
+    background: var(--teal-700);
+    color: white;
+    text-align: left;
+    padding: 8px 11px;
+    font-weight: 600;
+    font-size: 10pt;
+  }
+  td {
+    padding: 7px 11px;
+    border-bottom: 1px solid var(--gray-300);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: var(--gray-50); }
+
+  /* ─────────────── PASO A PASO ─────────────── */
+  .steps {
+    counter-reset: step;
+    margin: 12px 0;
+  }
+  .step {
+    counter-increment: step;
+    position: relative;
+    padding: 8px 8px 8px 44px;
+    margin: 8px 0;
+    background: var(--gray-50);
+    border-radius: 6px;
+    border-left: 4px solid var(--cyan-500);
+  }
+  .step::before {
+    content: counter(step);
+    position: absolute;
+    left: 10px;
+    top: 8px;
+    background: var(--teal-700);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 10pt;
+  }
+  .step strong { color: var(--teal-700); }
+
+  /* ─────────────── BADGES ─────────────── */
+  .badge-tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 99px;
+    font-size: 9pt;
+    font-weight: 600;
+    margin: 0 2px;
+  }
+  .badge-tag.normal  { background: var(--success-bg); color: var(--success); }
+  .badge-tag.low     { background: var(--warn-bg);    color: var(--warn); }
+  .badge-tag.critical{ background: var(--danger-bg); color: var(--danger); }
+  .badge-tag.role    { background: var(--cyan-100);  color: var(--teal-700); }
+
+  /* ─────────────── ROLES GRID ─────────────── */
+  .roles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 12px 0;
+  }
+  .role-card {
+    border: 2px solid var(--cyan-100);
+    background: white;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .role-card h4 {
+    color: var(--teal-700);
+    margin: 0 0 5px 0;
+    font-size: 11pt;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .role-card h4::before {
+    content: "👤";
+    font-size: 14pt;
+  }
+  .role-card p { font-size: 9.5pt; margin: 2px 0; color: var(--gray-700); }
+
+  /* ─────────────── CONCEPTOS ─────────────── */
+  .concept {
+    border: 1.5px solid var(--cyan-100);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 12px 0;
+    background: var(--cyan-50);
+  }
+  .concept h3 {
+    margin-top: 0;
+    color: var(--teal-700);
+  }
+
+  /* ─────────────── KBD ─────────────── */
+  kbd {
+    display: inline-block;
+    padding: 1px 7px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-300);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+    font-size: 9pt;
+    color: var(--teal-900);
+  }
+
+  /* ─────────────── FOOTER ─────────────── */
+  .doc-footer {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 2px solid var(--cyan-500);
+    text-align: center;
+    color: var(--gray-500);
+    font-size: 9pt;
+    font-style: italic;
+  }
+
+  /* ─────────────── UTILS ─────────────── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 10px 0;
+  }
+  .icon-bullet {
+    list-style: none;
+    margin-left: 0;
+  }
+  .icon-bullet li {
+    padding-left: 22px;
+    position: relative;
+    margin: 6px 0;
+  }
+  .icon-bullet li::before {
+    content: "▸";
+    color: var(--cyan-500);
+    font-weight: 700;
+    position: absolute;
+    left: 5px;
+  }
+  .no-break { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- PORTADA                                                          -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-tag">Documentación Oficial</div>
+  <div class="cover-logo"><img src="logo-empresa.png" alt="Logo empresa"></div>
+  <h1 class="title">Manual de Uso</h1>
+  <div class="subtitle">Sistema de Inventario<br/>de Materia Prima</div>
+  <div class="badge">Versión 2.0.0 — Edición Completa</div>
+  <div class="footer-info">
+    Guía paso a paso para el manejo diario del sistema<br/>
+    Bodegas: Panadería · Pastelería
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- ÍNDICE                                                           -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">★</span>
+    <div>
+      <h1>Tabla de contenido</h1>
+      <p>Navega rápido por cualquier tema</p>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-item"><span class="label">1. Introducción</span><span class="num">3</span></div>
+    <div class="toc-sub">1.1 ¿Qué es este sistema?</div>
+    <div class="toc-sub">1.2 ¿Para quién?</div>
+    <div class="toc-sub">1.3 Qué incluye y qué no</div>
+
+    <div class="toc-item"><span class="label">2. Primeros pasos</span><span class="num">4</span></div>
+    <div class="toc-sub">2.1 Acceso al sistema (login)</div>
+    <div class="toc-sub">2.2 Roles de usuario</div>
+    <div class="toc-sub">2.3 La barra lateral</div>
+    <div class="toc-sub">2.4 Selector de bodega</div>
+
+    <div class="toc-item"><span class="label">3. Conceptos clave</span><span class="num">5</span></div>
+    <div class="toc-sub">3.1 Categorías de producto</div>
+    <div class="toc-sub">3.2 Sistema de doble unidad</div>
+    <div class="toc-sub">3.3 Estados de stock</div>
+    <div class="toc-sub">3.4 Productos por peso (rollos ⚖)</div>
+
+    <div class="toc-item"><span class="label">4. Módulos del sistema</span><span class="num">7</span></div>
+    <div class="toc-sub">4.1 Stock actual</div>
+    <div class="toc-sub">4.2 Resumen / Dashboard</div>
+    <div class="toc-sub">4.3 Productos</div>
+    <div class="toc-sub">4.4 Entradas</div>
+    <div class="toc-sub">4.5 Salidas</div>
+    <div class="toc-sub">4.6 Ajustes</div>
+    <div class="toc-sub">4.7 Reportes</div>
+    <div class="toc-sub">4.8 Configuración</div>
+
+    <div class="toc-item"><span class="label">5. Flujos completos paso a paso</span><span class="num">22</span></div>
+    <div class="toc-sub">5.1 Recibir una factura del proveedor</div>
+    <div class="toc-sub">5.2 Registrar salida a producción</div>
+    <div class="toc-sub">5.3 Hacer el conteo físico mensual</div>
+    <div class="toc-sub">5.4 Exportar un reporte para la gerencia</div>
+
+    <div class="toc-item"><span class="label">6. Preguntas frecuentes</span><span class="num">26</span></div>
+    <div class="toc-item"><span class="label">7. Glosario</span><span class="num">28</span></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 1. INTRODUCCIÓN                                                  -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">1</span>
+    <div>
+      <h1>Introducción</h1>
+      <p>Qué es este sistema y para qué te sirve</p>
+    </div>
+  </div>
+
+  <h2>1.1 ¿Qué es este sistema?</h2>
+  <p>
+    Es una aplicación web hecha para controlar todo el <strong>inventario de materia prima</strong>
+    de la fábrica de pan. Te permite saber, en cualquier momento y desde cualquier computador con
+    navegador, <strong>cuánto hay de cada producto</strong>, qué entró, qué salió, y cuándo es hora de pedir más.
+  </p>
+  <p>
+    Está diseñado para una sola persona encargada del inventario, pero permite que distintos roles
+    (administración, operadores, personal de entradas y de salidas) trabajen sobre la misma base de
+    datos sin pisarse unos a otros.
+  </p>
+
+  <div class="callout">
+    <div class="callout-title">💡 La idea principal</div>
+    El sistema <strong>no es un Excel</strong>. Cada movimiento queda registrado con fecha, hora y usuario.
+    Cuando hay un problema —faltante, sobrante, pérdida— siempre se puede rastrear qué pasó y quién hizo qué.
+  </div>
+
+  <h2>1.2 ¿Para quién?</h2>
+  <ul class="icon-bullet">
+    <li><strong>Encargado de inventario:</strong> uso diario para registrar entradas, salidas y consultar stock.</li>
+    <li><strong>Administración:</strong> revisar reportes, configurar usuarios, ver auditoría.</li>
+    <li><strong>Personal de bodega:</strong> registrar salidas a producción o empaque sin acceso a ediciones administrativas.</li>
+  </ul>
+
+  <h2>1.3 Qué incluye y qué no incluye</h2>
+
+  <div class="two-col">
+    <div class="callout success">
+      <div class="callout-title">✓ Sí incluye</div>
+      <ul style="margin-left:18px">
+        <li>Productos / materias primas</li>
+        <li>Entradas con factura y proveedor</li>
+        <li>Salidas a producción, empaque o punto de venta</li>
+        <li>Stock en tiempo real con alertas</li>
+        <li>Conteo físico (ajustes)</li>
+        <li>8 tipos de reportes con Excel y PDF</li>
+        <li>Auditoría de ediciones</li>
+        <li>Dos bodegas: Panadería y Pastelería</li>
+      </ul>
+    </div>
+    <div class="callout danger">
+      <div class="callout-title">✗ No incluye</div>
+      <ul style="margin-left:18px">
+        <li>Facturación electrónica / DIAN</li>
+        <li>Recetas o costeo automático del pan</li>
+        <li>Ventas al público</li>
+        <li>Control del pan terminado (eso lo hace otro sistema aparte)</li>
+        <li>Inventario de productos terminados</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 2. PRIMEROS PASOS                                                -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">2</span>
+    <div>
+      <h1>Primeros pasos</h1>
+      <p>Cómo entrar y moverte por el sistema</p>
+    </div>
+  </div>
+
+  <h2>2.1 Acceso al sistema (Login)</h2>
+  <p>
+    Al abrir el sistema en el navegador verás la pantalla de inicio de sesión. Ingresa tu
+    <strong>usuario</strong> y <strong>contraseña</strong> y pulsa <kbd>Ingresar</kbd>.
+  </p>
+
+  <div class="screenshot">
+    <img src="01-login.png" alt="Pantalla de login">
+    <div class="caption">Pantalla de inicio de sesión</div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-title">⚠ Importante</div>
+    Si olvidas tu contraseña, debes pedirle al administrador que te la reinicie desde el módulo de
+    <em>Configuración → Usuarios</em>. Por seguridad, las contraseñas no se guardan visibles: el
+    administrador solo puede asignar una nueva.
+  </div>
+
+  <h2>2.2 Roles de usuario</h2>
+  <p>
+    Cada usuario tiene un rol que define lo que puede hacer. Esto evita errores y mantiene el control.
+  </p>
+
+  <div class="roles-grid">
+    <div class="role-card">
+      <h4>Administrador</h4>
+      <p><span class="badge-tag role">admin</span></p>
+      <p>Acceso total: usuarios, configuración, edición y anulación de entradas/salidas, todos los reportes y auditoría.</p>
+    </div>
+    <div class="role-card">
+      <h4>Operador</h4>
+      <p><span class="badge-tag role">operador</span></p>
+      <p>Todo excepto la gestión de usuarios. Puede registrar entradas, salidas, ajustes y ver reportes.</p>
+    </div>
+    <div class="role-card">
+      <h4>Entradas</h4>
+      <p><span class="badge-tag role">entradas</span></p>
+      <p>Solo stock, entradas y ajustes. Ideal para el personal que recibe la mercancía.</p>
+    </div>
+    <div class="role-card">
+      <h4>Salidas</h4>
+      <p><span class="badge-tag role">salidas</span></p>
+      <p>Solo stock, salidas y ajustes. Ideal para el personal que despacha a producción/empaque.</p>
+    </div>
+  </div>
+
+  <h2>2.3 La barra lateral (menú principal)</h2>
+  <p>
+    Una vez dentro, verás siempre la <strong>barra lateral izquierda</strong> con todos los módulos
+    del sistema, el selector de bodega y el botón para cerrar sesión.
+  </p>
+
+  <div class="screenshot tall">
+    <img src="02-sidebar.png" alt="Barra lateral">
+    <div class="caption">Menú lateral con todos los accesos del sistema</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th style="width:30%">Opción</th><th>Para qué sirve</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>◈ Stock actual</strong></td><td>Ver cuánto hay de cada materia prima ahora mismo (pantalla principal)</td></tr>
+      <tr><td><strong>▣ Resumen</strong></td><td>Vista rápida: cuántos productos hay, alertas y últimos movimientos</td></tr>
+      <tr><td><strong>⊞ Productos</strong></td><td>Crear, editar o desactivar materias primas</td></tr>
+      <tr><td><strong>↓ Entradas</strong></td><td>Registrar lo que llega del proveedor con su factura</td></tr>
+      <tr><td><strong>↑ Salidas</strong></td><td>Registrar lo que se manda a producción o empaque</td></tr>
+      <tr><td><strong>⟳ Ajustes</strong></td><td>Conteo físico — corregir diferencias del sistema vs lo real</td></tr>
+      <tr><td><strong>≡ Reportes</strong></td><td>Generar informes para exportar a Excel o PDF</td></tr>
+      <tr><td><strong>⚙ Configuración</strong></td><td>Usuarios, datos de la empresa, IVA</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2.4 Selector de bodega</h2>
+  <p>
+    En la parte superior del sidebar hay un selector que dice <strong>"Bodega activa"</strong>. El sistema
+    maneja <strong>dos bodegas independientes</strong>: Panadería y Pastelería. Cada una tiene sus propios
+    productos, stock, entradas, salidas y reportes.
+  </p>
+
+  <div class="callout">
+    <div class="callout-title">🏪 ¿Cómo funciona?</div>
+    Cuando cambias de bodega, <strong>todo el sistema cambia contigo</strong>: lo que ves en Stock,
+    Productos, Entradas, etc. corresponde a esa bodega. Es como si fueran dos sistemas separados
+    que comparten el mismo login. Acuérdate siempre de verificar arriba qué bodega tienes seleccionada
+    antes de registrar un movimiento.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 3. CONCEPTOS CLAVE                                               -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">3</span>
+    <div>
+      <h1>Conceptos clave</h1>
+      <p>Ideas que conviene entender antes de empezar</p>
+    </div>
+  </div>
+
+  <h2>3.1 Categorías de producto</h2>
+  <p>Todos los productos del sistema se dividen en dos grandes grupos:</p>
+
+  <div class="two-col">
+    <div class="concept">
+      <h3>🍞 Producción</h3>
+      <p>Todo lo que va dentro del pan: harinas, levaduras, azúcar, mantequilla, huevos, mejorantes, sal, leche, etc.</p>
+    </div>
+    <div class="concept">
+      <h3>📦 Empaques</h3>
+      <p>Todo lo que envuelve o contiene el pan: bolsas, cajas, etiquetas, papel parafinado, rollos plásticos, etc.</p>
+    </div>
+  </div>
+
+  <p>
+    Esta división es importante porque <strong>los reportes, salidas y ajustes se hacen por categoría</strong>.
+    Por ejemplo, al registrar una salida primero eliges "¿a Producción o a Empaques?" y solo te aparecen los
+    productos de esa categoría.
+  </p>
+
+  <h2>3.2 Sistema de doble unidad</h2>
+
+  <div class="concept">
+    <h3>El problema que resuelve</h3>
+    <p>
+      La harina se compra <strong>por bultos de 50 kg</strong>, pero cuando se usa en la masa, se mide
+      <strong>en gramos o kilos</strong>. La levadura llega <strong>en cajas de 500 g</strong> pero se ocupa
+      <strong>por gramos</strong>. Si llevas el inventario solo en "bultos", no sabes cuánto te queda real.
+      Si lo llevas solo en kilos, perdés referencia visual.
+    </p>
+  </div>
+
+  <h3>La solución</h3>
+  <p>Cada producto tiene <strong>dos unidades</strong>:</p>
+  <table>
+    <thead>
+      <tr><th style="width:25%">Tipo</th><th>Qué es</th><th>Ejemplo</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Unidad operativa</strong></td><td>Cómo lo ves y compras todos los días</td><td>"bulto", "caja", "rollo"</td></tr>
+      <tr><td><strong>Unidad base</strong></td><td>La unidad pequeña en la que internamente se controla</td><td>"kg", "gramos", "unidad"</td></tr>
+      <tr><td><strong>Factor de conversión</strong></td><td>Cuántas unidades base hay en una unidad operativa</td><td>1 bulto = 50 kg → factor 50</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout success">
+    <div class="callout-title">✓ Lo bueno</div>
+    En el módulo de <strong>Stock actual</strong>, cada producto te muestra <strong>las dos unidades a la vez</strong>:
+    <em>"3 bultos (150 kg)"</em>. Haciendo clic en el número principal alternas entre una y la otra. Así siempre tienes claridad.
+  </div>
+
+  <h2>3.3 Estados de stock</h2>
+  <p>El sistema te avisa visualmente cuándo un producto está bajo. Hay tres estados:</p>
+
+  <table>
+    <thead>
+      <tr><th>Estado</th><th>Cuándo se aplica</th><th>Qué hacer</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge-tag normal">● Normal</span></td>
+        <td>Cuando hay <em>más</em> stock que el mínimo configurado</td>
+        <td>Nada, todo bien</td>
+      </tr>
+      <tr>
+        <td><span class="badge-tag low">● Bajo</span></td>
+        <td>Cuando el stock <em>iguala o baja</em> del mínimo</td>
+        <td>Pedir pronto</td>
+      </tr>
+      <tr>
+        <td><span class="badge-tag critical">● Crítico</span></td>
+        <td>Cuando el stock está al <em>50% o menos</em> del mínimo</td>
+        <td>Pedir <strong>ya</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <div class="callout-title">⚠ Cómo cambiar el mínimo</div>
+    El mínimo de cada producto se configura al crearlo o editarlo en el módulo de <em>Productos</em>.
+    Conviene revisarlo cada cierto tiempo según el consumo real de la fábrica.
+  </div>
+
+  <h2>3.4 Productos por peso (rollos ⚖)</h2>
+  <p>
+    Algunos empaques —típicamente <strong>los rollos de plástico</strong>— no se consumen en unidades enteras.
+    Se pesa el rollo antes de empezar a usarlo, se pesa después, y la diferencia es lo que se consumió.
+  </p>
+
+  <p>Para estos productos, en <strong>Productos</strong> hay una opción <em>"Salida por peso diferencial (⚖ rollo)"</em>.
+    Al activarla, al registrar una salida verás tres campos especiales:</p>
+  <ul class="icon-bullet">
+    <li><strong>Peso inicial (kg)</strong> — cuánto pesaba el rollo al empezar el turno</li>
+    <li><strong>Peso final (kg)</strong> — cuánto pesa ahora</li>
+    <li><strong>Diferencia</strong> — el sistema la calcula sola, eso es lo que se descuenta del stock</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 4. MÓDULOS                                                       -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">4</span>
+    <div>
+      <h1>Módulos del sistema</h1>
+      <p>Cada pantalla explicada en detalle</p>
+    </div>
+  </div>
+
+  <h2>4.1 Stock actual</h2>
+  <p>
+    Es la pantalla <strong>principal y más usada</strong>. Te muestra de un vistazo cuánto hay
+    de cada producto, su estado y la diferencia respecto al mínimo.
+  </p>
+
+  <div class="screenshot">
+    <img src="03-stock-actual.png" alt="Stock actual">
+    <div class="caption">Pantalla principal: stock en tiempo real</div>
+  </div>
+
+  <h3>Las 4 tarjetas de arriba</h3>
+  <p>Son <strong>filtros rápidos</strong>. Haciendo clic en cada una, la tabla de abajo se filtra:</p>
+  <ul class="icon-bullet">
+    <li><strong>Total:</strong> ver todos los productos activos</li>
+    <li><strong>Normal:</strong> solo los que están bien</li>
+    <li><strong>Stock bajo:</strong> los que igualan o bajaron del mínimo</li>
+    <li><strong>Crítico:</strong> los que están a la mitad del mínimo o menos</li>
+  </ul>
+
+  <h3>Filtros</h3>
+  <ul class="icon-bullet">
+    <li><strong>Buscar producto:</strong> escribe parte del nombre para filtrar la tabla</li>
+    <li><strong>Categoría:</strong> mostrar solo Producción o solo Empaques</li>
+  </ul>
+
+  <h3>Las columnas de la tabla</h3>
+  <table>
+    <thead>
+      <tr><th>Columna</th><th>Qué muestra</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Producto</strong></td><td>Nombre completo de la materia prima</td></tr>
+      <tr><td><strong>Stock</strong></td><td>Cantidad actual en unidad operativa (bultos) y al lado, en pequeño, la unidad base (kg). <strong>Clic en el número grande</strong> para alternar.</td></tr>
+      <tr><td><strong>Mínimo</strong></td><td>Cuánto debe haber como mínimo</td></tr>
+      <tr><td><strong>Diferencia</strong></td><td>Diferencia entre el stock actual y el mínimo (verde = sobra, rojo = falta)</td></tr>
+      <tr><td><strong>Estado</strong></td><td>Badge de color: Normal / Bajo / Crítico</td></tr>
+      <tr><td><strong>Historial</strong></td><td>Botón para ver todos los movimientos pasados del producto</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Botones de exportación</h3>
+  <ul class="icon-bullet">
+    <li><strong>↓ Excel:</strong> descarga la vista actual filtrada en formato <code>.xlsx</code> en dos hojas (Producción / Empaques)</li>
+    <li><strong>↓ PDF conteo:</strong> descarga un PDF con una columna vacía llamada <em>"Stock real"</em> con borde, ideal para imprimir y hacer el conteo a mano</li>
+  </ul>
+
+  <h3>Modal de historial</h3>
+  <p>
+    Haciendo clic en el botón <strong>"Historial"</strong> de cualquier fila se abre una ventana con
+    todos los movimientos pasados de ese producto: entradas, salidas, ajustes, con fecha, cantidad y usuario.
+  </p>
+
+  <div class="screenshot">
+    <img src="04-stock-historial.png" alt="Historial de movimientos">
+    <div class="caption">Historial de movimientos de un producto individual</div>
+  </div>
+
+  <h2>4.2 Resumen / Dashboard</h2>
+  <p>
+    Una vista rápida con los <strong>números más importantes</strong> de la bodega activa.
+    Útil para revisar al inicio del día.
+  </p>
+
+  <div class="screenshot">
+    <img src="05-resumen.png" alt="Dashboard resumen">
+    <div class="caption">Tablero de control con métricas, alertas y últimos movimientos</div>
+  </div>
+
+  <p>Incluye:</p>
+  <ul class="icon-bullet">
+    <li><strong>6 métricas:</strong> productos activos, stock normal, stock bajo, stock crítico, entradas del mes, salidas del mes</li>
+    <li><strong>Productos que requieren pedido:</strong> tabla con todo lo que está en o por debajo del mínimo</li>
+    <li><strong>Últimos movimientos:</strong> las entradas, salidas y ajustes más recientes</li>
+  </ul>
+
+  <h2>4.3 Productos</h2>
+  <p>
+    Aquí se administra el <strong>catálogo de materias primas</strong>. No es donde se registra el stock
+    diario, es donde se da de alta cada producto (una vez) para que después aparezca en entradas, salidas, etc.
+  </p>
+
+  <div class="screenshot">
+    <img src="06-productos-lista.png" alt="Lista de productos">
+    <div class="caption">Lista de productos del sistema</div>
+  </div>
+
+  <h3>Filtros disponibles</h3>
+  <ul class="icon-bullet">
+    <li><strong>Buscar:</strong> por nombre</li>
+    <li><strong>Categoría:</strong> Producción o Empaques</li>
+    <li><strong>Mostrar inactivos:</strong> para ver productos que fueron desactivados</li>
+  </ul>
+
+  <h3>Crear un producto nuevo</h3>
+  <p>Botón <strong>+ Nuevo producto</strong> arriba a la derecha. Se abre un formulario:</p>
+
+  <div class="screenshot">
+    <img src="07-producto-nuevo.png" alt="Formulario nuevo producto">
+    <div class="caption">Formulario para crear o editar un producto</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th style="width:30%">Campo</th><th>Qué va</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Nombre</strong></td><td>Nombre claro: "Harina de trigo Haz de Oros 50 kg"</td></tr>
+      <tr><td><strong>Categoría</strong></td><td>Producción o Empaques</td></tr>
+      <tr><td><strong>Unidad operativa</strong></td><td>Cómo lo nombras tú: bulto, caja, rollo, paquete...</td></tr>
+      <tr><td><strong>Unidad base</strong></td><td>La unidad granular: kg, gramos, unidades, ml...</td></tr>
+      <tr><td><strong>Factor de conversión</strong></td><td>Cuántas unidades base hay en una operativa. Por ejemplo: 1 bulto = 50 kg → escribir 50</td></tr>
+      <tr><td><strong>Unidad por defecto entradas / salidas</strong></td><td>Qué unidad aparecerá pre-seleccionada al registrar movimientos</td></tr>
+      <tr><td><strong>Stock mínimo</strong></td><td>Cantidad mínima que activa la alerta (en unidad operativa)</td></tr>
+      <tr><td><strong>Salida por peso diferencial</strong></td><td>Marcar SÍ solo para empaques tipo rollo que se pesan</td></tr>
+      <tr><td><strong>Notas</strong></td><td>Cualquier información extra (opcional)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <div class="callout-title">⚠ Stock inicial</div>
+    Al crear un producto nuevo, el stock arranca en <strong>cero</strong>. Para cargar la cantidad inicial
+    real, debes hacerlo por el módulo de <strong>Ajustes</strong> (conteo físico) o por una <strong>Entrada</strong>
+    que represente esa carga inicial.
+  </div>
+
+  <h3>Editar o desactivar</h3>
+  <ul class="icon-bullet">
+    <li><strong>Editar:</strong> cambia cualquier dato salvo el stock actual (que se modifica con movimientos)</li>
+    <li><strong>Desactivar:</strong> el producto deja de aparecer en las listas, pero su historial se conserva.
+      Útil para productos que ya no se usan pero tienen movimientos pasados</li>
+  </ul>
+
+  <h2>4.4 Entradas</h2>
+  <p>
+    Aquí se registra <strong>todo lo que llega del proveedor</strong>. Cada entrada tiene un folio /
+    número de factura, fecha, proveedor, y la lista de productos recibidos con sus cantidades.
+  </p>
+
+  <div class="screenshot">
+    <img src="08-entradas-lista.png" alt="Lista de entradas">
+    <div class="caption">Listado de entradas con filtros de fecha y folio</div>
+  </div>
+
+  <h3>Filtros</h3>
+  <ul class="icon-bullet">
+    <li><strong>Desde / Hasta:</strong> filtrar por rango de fechas</li>
+    <li><strong>Folio / N° factura:</strong> buscar una factura específica</li>
+  </ul>
+
+  <h3>Dos modos de registro</h3>
+  <p>Al crear una entrada nueva, primero eliges entre dos modos:</p>
+
+  <div class="two-col">
+    <div class="concept">
+      <h3>📋 Solo totalizar</h3>
+      <p>Registras cantidades de productos + el <strong>total de la factura</strong>. No detallas precio por línea ni IVA por producto. Es el modo más rápido cuando no te importa el desglose.</p>
+    </div>
+    <div class="concept">
+      <h3>💰 Detallado</h3>
+      <p>Cada producto lleva su <strong>precio</strong>, su <strong>IVA</strong> y se calcula automáticamente el total línea. Es el modo recomendado si tu administración necesita el detalle de costos.</p>
+    </div>
+  </div>
+
+  <div class="screenshot">
+    <img src="09-entrada-modo-total.png" alt="Entrada modo total">
+    <div class="caption">Modo "Solo totalizar" — más rápido, solo cantidades y total de factura</div>
+  </div>
+
+  <div class="screenshot">
+    <img src="10-entrada-modo-detallado.png" alt="Entrada modo detallado">
+    <div class="caption">Modo "Detallar precios" — IVA y total por línea</div>
+  </div>
+
+  <h3>Campos de la entrada</h3>
+  <table>
+    <thead>
+      <tr><th style="width:30%">Campo</th><th>Detalle</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Fecha *</strong></td><td>Día en que se recibió. Por defecto trae la fecha de hoy</td></tr>
+      <tr><td><strong>Folio / N° factura *</strong></td><td><strong>Obligatorio</strong>. Es el número que viene en la factura del proveedor</td></tr>
+      <tr><td><strong>Proveedor</strong></td><td>Nombre del proveedor (opcional pero recomendado)</td></tr>
+      <tr><td><strong>Responsable</strong></td><td>Quién recibió la mercancía</td></tr>
+      <tr><td><strong>Observaciones</strong></td><td>Notas libres (estado de la mercancía, etc.)</td></tr>
+      <tr><td><strong>Productos recibidos</strong></td><td>Botón <em>+ Agregar</em> para añadir filas. Cada fila: producto, cantidad, unidad, e —si es modo detallado— IVA, % IVA, valor IVA, total línea</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">💡 Tip de uso</div>
+    Cuando elijas un producto en una línea, el sistema <strong>preselecciona la unidad por defecto</strong>
+    que configuraste en el producto (operativa o base). Si te llega un bulto incompleto, puedes cambiar a kg
+    en el dropdown de unidad y poner los kilos reales.
+  </div>
+
+  <h3>Ver detalle de una entrada</h3>
+  <p>Haciendo clic en cualquier fila de la lista se abre el detalle:</p>
+
+  <div class="screenshot">
+    <img src="11-entrada-detalle.png" alt="Detalle de entrada">
+    <div class="caption">Modal de detalle con productos, totales e historial de ediciones</div>
+  </div>
+
+  <p>Desde el detalle puedes:</p>
+  <ul class="icon-bullet">
+    <li><strong>Editar</strong> la entrada (solo admin y operador). Cada edición queda registrada en el historial</li>
+    <li><strong>Anular</strong> la entrada (solo admin). Esto <strong>devuelve el stock</strong> al estado anterior y
+      la marca como "Anulada". No la borra: queda como constancia con franja roja</li>
+    <li>Ver el <strong>historial de ediciones</strong>: quién editó/anuló y cuándo</li>
+  </ul>
+
+  <div class="callout danger">
+    <div class="callout-title">✕ Anular ≠ Borrar</div>
+    Anular una entrada <strong>no la elimina del sistema</strong>. Queda registrada como evidencia con su
+    estado "Anulada". Esto es a propósito: para que siempre haya rastro de lo que pasó. Solo el rol
+    <em>admin</em> puede hacerlo.
+  </div>
+
+  <h2>4.5 Salidas</h2>
+  <p>
+    Aquí se registra <strong>todo lo que sale de la bodega</strong>: hacia producción, hacia el área de
+    empaque, etc. Una salida descuenta del stock.
+  </p>
+
+  <div class="screenshot">
+    <img src="12-salidas-lista.png" alt="Lista de salidas">
+    <div class="caption">Listado de salidas con filtros por fecha</div>
+  </div>
+
+  <h3>Registrar una salida: paso 1 — elegir categoría</h3>
+  <p>
+    Antes de abrir el formulario, el sistema te pregunta <strong>"¿a qué área va?"</strong>: Producción o Empaques.
+    Solo te mostrará los productos de la categoría elegida en el formulario.
+  </p>
+
+  <div class="screenshot">
+    <img src="13-salida-pick-categoria.png" alt="Elegir categoría de salida">
+    <div class="caption">Primer paso: elegir el destino (Producción o Empaques)</div>
+  </div>
+
+  <h3>Paso 2 — formulario de salida</h3>
+
+  <div class="screenshot">
+    <img src="14-salida-formulario.png" alt="Formulario de salida">
+    <div class="caption">Formulario con productos retirados</div>
+  </div>
+
+  <p>Columnas del formulario:</p>
+  <table>
+    <thead><tr><th style="width:30%">Columna</th><th>Detalle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Producto</strong></td><td>Buscador con autocompletado. Solo aparecen los productos de la categoría elegida</td></tr>
+      <tr><td><strong>Stock</strong></td><td>Te muestra cuánto hay disponible justo a tiempo, así sabes si alcanza</td></tr>
+      <tr><td><strong>Cantidad</strong></td><td>Lo que vas a retirar</td></tr>
+      <tr><td><strong>Unidad</strong></td><td>Operativa o base, según el producto</td></tr>
+      <tr><td><strong>✕</strong></td><td>Quitar esa fila</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Caso especial: productos por peso (rollos)</h3>
+  <p>
+    Si eliges un producto marcado como "Salida por peso diferencial" (lleva el ícono <strong>⚖</strong> en
+    el listado), las columnas cambian para mostrar:
+  </p>
+  <ul class="icon-bullet">
+    <li><strong>Inicio (kg):</strong> peso del rollo al empezar</li>
+    <li><strong>Final (kg):</strong> peso del rollo al terminar</li>
+    <li><strong>Diferencia:</strong> calculada sola, esa es la cantidad consumida</li>
+  </ul>
+
+  <div class="callout warn">
+    <div class="callout-title">⚠ Stock insuficiente</div>
+    Si intentas sacar más de lo que hay, el sistema <strong>rechaza la salida</strong> y muestra error.
+    Esto evita stock negativo en el sistema.
+  </div>
+
+  <h3>Ver detalle / anular salida</h3>
+  <p>
+    Igual que en entradas: clic sobre una fila para ver el detalle. El rol <em>admin</em> puede anular
+    salidas, lo que <strong>devuelve el stock</strong> al inventario.
+  </p>
+
+  <h2>4.6 Ajustes (conteo físico)</h2>
+  <p>
+    Sirve para corregir diferencias entre lo que dice el sistema y lo que realmente hay en la bodega.
+    Se hacen normalmente <strong>mensualmente</strong> o cuando se detecta una inconsistencia.
+  </p>
+
+  <div class="screenshot">
+    <img src="16-ajustes-lista.png" alt="Lista de ajustes">
+    <div class="caption">Lista de lotes de ajustes ya realizados</div>
+  </div>
+
+  <h3>Paso 1 — elegir categoría</h3>
+  <p>Los ajustes se hacen por lotes y por categoría: Producción o Empaques.</p>
+
+  <div class="screenshot">
+    <img src="17-ajustes-pick-categoria.png" alt="Elegir categoría ajuste">
+    <div class="caption">Cada lote de ajuste se hace para una categoría a la vez</div>
+  </div>
+
+  <h3>Paso 2 — llenar la tabla de conteo</h3>
+  <p>
+    Aparece una tabla con <strong>todos los productos</strong> de la categoría. Para cada uno te muestra
+    lo que el sistema cree que hay (<em>Stock sistema</em>) y un campo vacío para escribir lo que <em>realmente</em> contaste físicamente.
+  </p>
+
+  <div class="screenshot">
+    <img src="18-ajustes-conteo.png" alt="Tabla de conteo">
+    <div class="caption">Tabla de conteo físico — solo llena los que necesitan ajuste</div>
+  </div>
+
+  <p><strong>Tip importante:</strong> solo llenas los productos que <strong>cambiaron</strong>. Si un producto no
+    tuvo diferencia, lo dejas vacío. El botón "Guardar lote" arriba te dice cuántos vas a ajustar.</p>
+
+  <p>La columna <strong>"Diferencia"</strong> se calcula sola y se pinta:</p>
+  <ul class="icon-bullet">
+    <li><span style="color:#059669;font-weight:700">Verde (+)</span> = había más de lo que decía el sistema (sobrante)</li>
+    <li><span style="color:#dc2626;font-weight:700">Rojo (−)</span> = había menos (faltante, pérdida o mal registro)</li>
+  </ul>
+
+  <div class="callout">
+    <div class="callout-title">⌨ Atajo de teclado</div>
+    Después de escribir un valor en el campo de conteo, pulsa <kbd>Enter</kbd> y el cursor salta al siguiente
+    producto. Así puedes hacer el conteo rápido sin usar el mouse.
+  </div>
+
+  <h3>Datos del lote</h3>
+  <ul class="icon-bullet">
+    <li><strong>Fecha</strong> del conteo</li>
+    <li><strong>Responsable:</strong> quién contó</li>
+    <li><strong>Observaciones</strong> generales del conteo</li>
+  </ul>
+
+  <h3>Ver detalle de un lote</h3>
+  <p>
+    Haciendo clic en un lote ya guardado, se abre un modal con el detalle completo: qué productos se
+    ajustaron, sistema vs real, diferencia. Desde ahí se puede exportar a <strong>Excel o PDF</strong>.
+  </p>
+
+  <h2>4.7 Reportes</h2>
+  <p>
+    El módulo más potente para análisis y entregas administrativas. Permite generar <strong>8 tipos de
+    reportes</strong> distintos y exportarlos a Excel o PDF.
+  </p>
+
+  <div class="screenshot">
+    <img src="20-reportes-opciones.png" alt="Opciones de reportes">
+    <div class="caption">Tarjetas con los 8 tipos de reporte disponibles</div>
+  </div>
+
+  <h3>Los 8 tipos de reporte</h3>
+  <table>
+    <thead>
+      <tr><th style="width:25%">Reporte</th><th>Para qué sirve</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Stock actual</strong></td><td>Inventario completo con estados. Útil para entregar resumen de bodega</td></tr>
+      <tr><td><strong>Productos bajo mínimo</strong></td><td>Solo los productos que necesitan pedido. La "lista de compras"</td></tr>
+      <tr><td><strong>Entradas por producto</strong></td><td>Cuánto se recibió de cada producto en un período. Balance por producto</td></tr>
+      <tr><td><strong>Salidas por producto</strong></td><td>Cuánto salió de cada producto en un período</td></tr>
+      <tr><td><strong>Facturas por fecha</strong></td><td>Listado de facturas (folio, proveedor, total) por rango de fechas</td></tr>
+      <tr><td><strong>Ajustes de inventario</strong></td><td>Ajuste neto por producto en el período (sobrantes / faltantes)</td></tr>
+      <tr><td><strong>Historial de movimientos</strong></td><td>Cada movimiento (entrada, salida, ajuste) en una sola lista cronológica</td></tr>
+      <tr><td><strong>Ediciones de facturas</strong></td><td>Auditoría: qué facturas fueron editadas, por quién y cuándo</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cómo generar un reporte</h3>
+  <div class="steps">
+    <div class="step"><strong>Elige el tipo</strong> de reporte clicando una de las tarjetas (queda resaltada)</div>
+    <div class="step"><strong>Configura los filtros</strong>: fechas, categoría, tipo de movimiento, según el reporte</div>
+    <div class="step">Pulsa <strong>Generar reporte</strong></div>
+    <div class="step">Si hay resultados, aparecerá una tabla abajo y los botones <strong>↓ Excel</strong> y <strong>↓ PDF</strong></div>
+  </div>
+
+  <div class="screenshot">
+    <img src="21-reportes-resultado.png" alt="Reporte generado">
+    <div class="caption">Vista de un reporte ya generado con sus filtros y resultados</div>
+  </div>
+
+  <h3>Formatos de exportación</h3>
+  <ul class="icon-bullet">
+    <li><strong>Excel (.xlsx):</strong> con fuente Trebuchet MS, cabecera teal, separador de miles. Los reportes de balance
+      (entradas, salidas, ajustes) traen <strong>dos hojas separadas</strong>: una para Producción y otra para Empaques</li>
+    <li><strong>PDF:</strong> orientación vertical A4. Los reportes de stock incluyen una columna <em>"Stock real"</em>
+      vacía y con borde, ideal para imprimir y llenar a mano durante un conteo físico</li>
+  </ul>
+
+  <div class="screenshot">
+    <img src="22-pdf-stock-conteo.png" alt="PDF de stock para conteo">
+    <div class="caption">PDF de stock con columna "Stock real" para escribir a mano en el conteo físico</div>
+  </div>
+
+  <h2>4.8 Configuración</h2>
+  <p>
+    Aquí se administra el sistema en general. La sección de <strong>Usuarios</strong> es exclusiva del rol admin.
+  </p>
+
+  <div class="screenshot">
+    <img src="23-configuracion.png" alt="Configuración">
+    <div class="caption">Pantalla de configuración: usuarios, empresa y datos del sistema</div>
+  </div>
+
+  <h3>Gestión de usuarios (solo admin)</h3>
+  <p>Permite crear, editar, activar/desactivar usuarios.</p>
+
+  <div class="screenshot">
+    <img src="24-usuario-nuevo.png" alt="Nuevo usuario">
+    <div class="caption">Formulario para crear un nuevo usuario</div>
+  </div>
+
+  <p>Campos:</p>
+  <ul class="icon-bullet">
+    <li><strong>Usuario (login):</strong> nombre corto para entrar al sistema. No se puede cambiar después</li>
+    <li><strong>Nombre completo:</strong> nombre real para que aparezca en reportes y auditorías</li>
+    <li><strong>Rol:</strong> Administrador / Operador / Entradas / Salidas (ver sección 2.2)</li>
+    <li><strong>Contraseña:</strong> al menos 6 caracteres. Con el ícono del ojito se puede mostrar/ocultar al teclearla</li>
+  </ul>
+
+  <div class="callout warn">
+    <div class="callout-title">⚠ Editar usuario</div>
+    Al editar un usuario, el campo de contraseña puede <strong>dejarse vacío</strong> para no cambiarla.
+    Si se llena, se asigna como nueva contraseña.
+  </div>
+
+  <h3>Información de la empresa</h3>
+  <ul class="icon-bullet">
+    <li><strong>Nombre de la empresa:</strong> aparece en reportes y exportaciones</li>
+    <li><strong>IVA por defecto (%):</strong> tasa que se sugiere automáticamente al registrar una entrada detallada</li>
+    <li><strong>Modo de entrada por defecto:</strong> "Solo totalizar" o "Detallado". Define cuál viene preseleccionado al crear nuevas entradas</li>
+  </ul>
+
+  <h3>Acerca del sistema</h3>
+  <p>Muestra la versión, la base de datos en uso y el usuario actualmente logueado.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 5. FLUJOS COMPLETOS                                              -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">5</span>
+    <div>
+      <h1>Flujos completos paso a paso</h1>
+      <p>Las tareas más comunes, de principio a fin</p>
+    </div>
+  </div>
+
+  <h2>5.1 Recibir una factura del proveedor</h2>
+  <p>
+    Supón que llega el camión del proveedor con harina, levadura y azúcar, con la factura física en mano.
+  </p>
+
+  <div class="steps">
+    <div class="step"><strong>Verifica la bodega</strong> en el sidebar (Panadería o Pastelería). Si no es la correcta, cámbiala antes</div>
+    <div class="step">Abre <strong>Entradas</strong> en el menú</div>
+    <div class="step">Haz clic en <strong>+ Registrar entrada</strong></div>
+    <div class="step">Elige el <strong>modo</strong> arriba: <em>Solo totalizar</em> si solo te interesan las cantidades y el total final, o <em>Detallar precios</em> si necesitas el desglose por producto</div>
+    <div class="step">Completa <strong>Fecha</strong>, <strong>Folio / N° factura</strong> (obligatorio, está en la factura física), <strong>Proveedor</strong> y <strong>Responsable</strong></div>
+    <div class="step">Haz clic en <strong>+ Agregar</strong> para cada producto de la factura. Búscalo en el listado, escribe la cantidad y verifica la unidad</div>
+    <div class="step">Si elegiste <em>Detallado</em>: marca si aplica IVA, ajusta el % y escribe el total de la línea</div>
+    <div class="step">Si elegiste <em>Solo totalizar</em>: escribe abajo el <strong>total de la factura</strong> con IVA incluido</div>
+    <div class="step">Haz clic en <strong>Registrar entrada</strong>, confirma, y listo: el stock se actualiza automáticamente</div>
+  </div>
+
+  <div class="callout success">
+    <div class="callout-title">✓ Tip de precisión</div>
+    Si el proveedor te trajo, por ejemplo, "1 bulto y 8 kg" extra de harina (un bulto incompleto), puedes
+    crear <strong>dos líneas</strong> en la misma entrada: una de 1 bulto y otra de 8 kg. O usar la línea
+    de bulto con cantidad 1.16 si tu bulto es de 50 kg.
+  </div>
+
+  <h2>5.2 Registrar una salida a producción</h2>
+  <p>
+    El panadero te pide harina, levadura y mantequilla para preparar la masa del día.
+  </p>
+
+  <div class="steps">
+    <div class="step">Ve a <strong>Salidas</strong> en el menú</div>
+    <div class="step">Haz clic en <strong>+ Registrar salida</strong></div>
+    <div class="step">Elige la categoría <strong>🍞 Producción</strong> (porque es para hacer pan, no para empacar)</div>
+    <div class="step">En el formulario, completa <strong>Fecha</strong> y <strong>Responsable</strong> (quién entregó la materia prima)</div>
+    <div class="step">Haz clic en <strong>+ Agregar</strong> y elige el primer producto. Verás el <strong>stock disponible</strong> al lado para saber si alcanza</div>
+    <div class="step">Escribe la cantidad y unidad. Repite para cada producto</div>
+    <div class="step">Pulsa <strong>Registrar salida</strong></div>
+  </div>
+
+  <p>Para empaques con rollos (peso diferencial):</p>
+  <ol>
+    <li>Al elegir el producto (los rollos llevan el ícono <strong>⚖</strong>), aparecen tres campos especiales</li>
+    <li>Pesa el rollo antes de empezar y escribe ese valor en <strong>Inicio (kg)</strong></li>
+    <li>Después del turno, pésalo de nuevo y escribe el valor en <strong>Final (kg)</strong></li>
+    <li>El sistema calcula la <strong>Diferencia</strong> sola — esa es la cantidad que se descontará del stock</li>
+  </ol>
+
+  <h2>5.3 Hacer el conteo físico mensual</h2>
+  <p>
+    Una vez al mes (o cuando lo defina la administración) se hace un conteo físico para verificar que el
+    inventario del sistema coincida con lo real.
+  </p>
+
+  <div class="steps">
+    <div class="step"><strong>Imprime la planilla:</strong> ve a <strong>Stock actual</strong> y pulsa el botón <em>↓ PDF conteo</em>. Esto te baja un PDF con una columna "Stock real" vacía para llenar a mano</div>
+    <div class="step">Lleva el PDF impreso a la bodega y ve producto por producto contando lo físico. Anota los valores en la columna a lápiz</div>
+    <div class="step">De vuelta en el sistema, abre <strong>Ajustes</strong></div>
+    <div class="step">Pulsa <strong>+ Registrar ajuste</strong> y elige la categoría (vas a hacer dos lotes: uno para Producción y otro para Empaques)</div>
+    <div class="step">Completa <strong>fecha</strong> y <strong>responsable</strong> del conteo</div>
+    <div class="step">Recorre la tabla. Para los productos que <strong>coinciden</strong>, no escribas nada (déjalos en blanco). Para los que <strong>no coinciden</strong>, escribe el valor real en la columna "Stock real"</div>
+    <div class="step">Verifica que la columna "Diferencia" tenga sentido. Verde = sobrante, rojo = faltante</div>
+    <div class="step">Pulsa <strong>Guardar lote</strong> (te dirá cuántos productos se van a ajustar)</div>
+    <div class="step">Repite los pasos 3-8 para la otra categoría</div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-title">⚠ Diferencias grandes</div>
+    Si encuentras diferencias muy grandes (por ejemplo, faltan 30 kg de harina), antes de guardar el ajuste
+    investiga: ¿se olvidó registrar una salida? ¿una entrada se duplicó? El ajuste debe ser el <strong>último
+    recurso</strong>, no la primera explicación.
+  </div>
+
+  <h2>5.4 Exportar un reporte para la gerencia</h2>
+  <p>
+    Te piden el detalle de cuánta harina se consumió el mes pasado.
+  </p>
+
+  <div class="steps">
+    <div class="step">Ve a <strong>Reportes</strong> en el menú</div>
+    <div class="step">Elige la tarjeta <strong>"Salidas por producto"</strong></div>
+    <div class="step">Configura las fechas: por ejemplo, del 1 al 30 del mes anterior</div>
+    <div class="step">Pulsa <strong>Generar reporte</strong></div>
+    <div class="step">Revisa la tabla. Si necesitas mandarlo, pulsa <strong>↓ Excel</strong> (mejor para análisis) o <strong>↓ PDF</strong> (mejor para imprimir)</div>
+    <div class="step">El archivo se descarga automáticamente con el nombre <code>salidas_FECHA.xlsx</code> o <code>.pdf</code></div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">📁 ¿Dónde se descargan los archivos?</div>
+    Los archivos van a la carpeta de <strong>Descargas</strong> del navegador (típicamente
+    <code>C:\Users\TuUsuario\Downloads</code>). Si quieres cambiarlo, configura la carpeta de descargas
+    desde el navegador.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 6. FAQ                                                           -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">6</span>
+    <div>
+      <h1>Preguntas frecuentes</h1>
+      <p>Las dudas más comunes y cómo resolverlas</p>
+    </div>
+  </div>
+
+  <h3>❓ Me equivoqué al registrar una entrada, ¿cómo la corrijo?</h3>
+  <p>
+    Ve a <strong>Entradas</strong>, haz clic en la fila incorrecta y se abre el detalle.
+    Si tu rol es admin u operador, verás el botón <strong>Editar</strong>. Modificas lo que necesites
+    y guardas. El sistema registrará automáticamente quién editó qué y cuándo (queda en el reporte
+    de auditoría).
+  </p>
+
+  <h3>❓ ¿Y si me equivoqué tanto que mejor anulo y vuelvo a registrar?</h3>
+  <p>
+    Solo el rol <strong>admin</strong> puede anular. Ve al detalle de la entrada y pulsa <strong>Anular</strong>.
+    Esto devuelve el stock al estado previo y marca la entrada como anulada (queda en gris en la lista).
+    Después, registra una nueva con los datos correctos.
+  </p>
+
+  <h3>❓ El stock que dice el sistema no coincide con lo real, ¿qué hago?</h3>
+  <p>
+    Haz un <strong>ajuste</strong>. Ve a Ajustes → + Registrar ajuste → elige la categoría → completa
+    la columna "Stock real" solo para el producto problemático → guarda. El sistema dejará constancia
+    del faltante o sobrante.
+  </p>
+
+  <h3>❓ ¿Cómo sé qué productos necesito pedir?</h3>
+  <p>
+    Tres formas:
+  </p>
+  <ol>
+    <li>En <strong>Stock actual</strong>, haz clic en la tarjeta <strong>"Stock bajo"</strong> o <strong>"Crítico"</strong> arriba</li>
+    <li>En <strong>Resumen</strong>, verás directamente la tabla "Productos que requieren pedido"</li>
+    <li>En <strong>Reportes → Productos bajo mínimo</strong>, generas un PDF para llevar al proveedor</li>
+  </ol>
+
+  <h3>❓ Hay productos que ya no usamos, ¿los borro?</h3>
+  <p>
+    <strong>No los borres</strong>. Ve a <strong>Productos</strong>, ubica el producto y pulsa
+    <strong>Desactivar</strong>. Así dejan de aparecer en las listas pero su historial se conserva
+    intacto para reportes pasados.
+  </p>
+
+  <h3>❓ ¿Puedo cambiar el nombre o la unidad de un producto que ya tiene movimientos?</h3>
+  <p>
+    Sí, puedes editarlo y los movimientos anteriores siguen referenciando al mismo producto.
+    Pero ten cuidado al cambiar el <strong>factor de conversión</strong> o la <strong>unidad base</strong>
+    de un producto con movimientos: las cantidades existentes no se recalculan.
+  </p>
+
+  <h3>❓ ¿Por qué no aparece un producto en el formulario de salida?</h3>
+  <p>
+    Tres posibles razones:
+  </p>
+  <ul class="icon-bullet">
+    <li>El producto está marcado como <strong>inactivo</strong>. Ve a Productos y actívalo</li>
+    <li>El producto es de <strong>otra categoría</strong>. Si elegiste "Salida a Producción" no verás empaques</li>
+    <li>Estás en <strong>otra bodega</strong>. Cambia la bodega activa en el sidebar</li>
+  </ul>
+
+  <h3>❓ ¿Qué pasa si dos personas registran entradas al mismo tiempo?</h3>
+  <p>
+    El sistema soporta múltiples usuarios trabajando simultáneamente. Cada entrada queda asociada
+    al usuario que la creó y los stocks se actualizan de forma segura uno a uno. No te tienes que
+    preocupar por colisiones.
+  </p>
+
+  <h3>❓ ¿Cómo sé quién hizo determinado movimiento?</h3>
+  <p>
+    En Reportes → <strong>Historial de movimientos</strong> verás cada movimiento con la columna del
+    usuario que lo registró. Para las ediciones/anulaciones de entradas, usa el reporte
+    <strong>"Ediciones de facturas"</strong>.
+  </p>
+
+  <h3>❓ Cambié de computadora, ¿pierdo los datos?</h3>
+  <p>
+    No. El sistema corre en la nube (base de datos Turso) y los datos están centralizados. Desde
+    cualquier computadora con conexión a internet, entras con tu usuario y verás todo igual.
+  </p>
+
+  <h3>❓ ¿Cómo cambio mi contraseña?</h3>
+  <p>
+    Solo el administrador puede cambiarla por ahora. Pídele a quien tenga rol admin que te la actualice
+    desde Configuración → Usuarios → Editar → Nueva contraseña.
+  </p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 7. GLOSARIO                                                      -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <span class="num">7</span>
+    <div>
+      <h1>Glosario</h1>
+      <p>Términos del sistema explicados</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th style="width:30%">Término</th><th>Significado</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Ajuste</strong></td><td>Corrección manual del stock por conteo físico. Hace que el sistema refleje la realidad</td></tr>
+      <tr><td><strong>Anular</strong></td><td>Marcar un registro como inválido sin borrarlo. Revierte el efecto en el stock</td></tr>
+      <tr><td><strong>Auditoría</strong></td><td>Registro automático de quién hizo qué cambio y cuándo. Imborrable</td></tr>
+      <tr><td><strong>Bodega</strong></td><td>Cada uno de los almacenes físicos del sistema: Panadería o Pastelería</td></tr>
+      <tr><td><strong>Categoría</strong></td><td>Tipo de producto: Producción (materia prima del pan) o Empaques (envolturas)</td></tr>
+      <tr><td><strong>Combobox</strong></td><td>Lista desplegable con búsqueda al escribir. Aparece al elegir productos</td></tr>
+      <tr><td><strong>Conteo físico</strong></td><td>Acto de ir a la bodega y contar realmente cuánto hay. Se usa para hacer Ajustes</td></tr>
+      <tr><td><strong>Entrada</strong></td><td>Registro de mercancía recibida del proveedor. Suma al stock</td></tr>
+      <tr><td><strong>Factor de conversión</strong></td><td>Número que dice cuántas unidades base hay en una unidad operativa. Por ejemplo: 50 si 1 bulto = 50 kg</td></tr>
+      <tr><td><strong>Folio</strong></td><td>Número de factura / identificador único del proveedor. Obligatorio en entradas</td></tr>
+      <tr><td><strong>IVA por línea</strong></td><td>Cada producto en una entrada puede tener su propio IVA, no uno único para toda la factura</td></tr>
+      <tr><td><strong>Lote (de ajuste)</strong></td><td>Un conteo físico hecho en una fecha, agrupando varios productos. Se guarda como un solo registro</td></tr>
+      <tr><td><strong>Modo de entrada</strong></td><td>Forma de registrar una entrada: <em>Solo totalizar</em> (rápido) o <em>Detallado</em> (con precio por línea)</td></tr>
+      <tr><td><strong>Movimiento</strong></td><td>Cualquier cambio de stock: entrada, salida o ajuste. Queda en el historial central</td></tr>
+      <tr><td><strong>Producto por peso</strong></td><td>Empaques (típicamente rollos) cuya cantidad consumida se calcula pesando antes y después. Tienen el ícono ⚖</td></tr>
+      <tr><td><strong>Rol</strong></td><td>Permisos del usuario: admin, operador, entradas o salidas</td></tr>
+      <tr><td><strong>Salida</strong></td><td>Registro de mercancía que sale de bodega (a producción, empaque, etc.). Resta del stock</td></tr>
+      <tr><td><strong>Stock actual</strong></td><td>Cantidad real disponible de un producto en este momento, en la unidad base</td></tr>
+      <tr><td><strong>Stock crítico</strong></td><td>Estado de un producto cuyo stock es ≤ 50% del mínimo. Color rojo</td></tr>
+      <tr><td><strong>Stock bajo</strong></td><td>Estado de un producto cuyo stock es ≤ mínimo pero > 50% del mínimo. Color amarillo</td></tr>
+      <tr><td><strong>Stock mínimo</strong></td><td>Umbral configurable por producto. Si el stock baja de ahí, se activa la alerta</td></tr>
+      <tr><td><strong>Unidad base</strong></td><td>Unidad pequeña de seguimiento interno: kg, gramos, unidades, ml</td></tr>
+      <tr><td><strong>Unidad operativa</strong></td><td>Unidad cotidiana con la que se piensa el producto: bulto, caja, paquete, rollo</td></tr>
+    </tbody>
+  </table>
+
+  <div class="doc-footer">
+    Sistema de Inventario de Materia Prima · Versión 2.0.0<br/>
+    Manual de uso generado para uso interno · Documento confidencial
+  </div>
+</div>
+
+</body>
+</html>
